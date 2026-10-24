@@ -163,6 +163,79 @@ console.log("\nConfiguration the service must refuse:\n");
   );
 }
 
+/* --------------------------------------------- the dashboard admin path -- */
+
+/*
+  Creating the first administrator with no shell, which is the only route open
+  on a free plan. Asserted here because the alternative is finding out on a
+  live deployment that the one account you need cannot be made.
+*/
+console.log("\nAdmin bootstrap from environment variables:\n");
+
+const bootstrapEnv = (extra) => ({ ...baseEnv, PORT: String(PORT + 50), ...extra });
+
+{
+  const result = await startAndExpectExit(
+    bootstrapEnv({ ADMIN_BOOTSTRAP_EMAIL: "boot@check.local" }),
+    "email without password",
+  );
+
+  // It must not block the boot, so the server comes up and we stop it.
+  check("one variable alone does not stop the server", result.timedOut, true);
+  check("and it says both are needed", /set BOTH ADMIN_BOOTSTRAP_EMAIL/.test(result.output), true);
+}
+
+{
+  const result = await startAndExpectExit(
+    bootstrapEnv({
+      ADMIN_BOOTSTRAP_EMAIL: "boot@check.local",
+      ADMIN_BOOTSTRAP_PASSWORD: "short",
+    }),
+    "short password",
+  );
+
+  check("a too-short bootstrap password is refused", /password is too short/.test(result.output), true);
+  check("and the API still starts", result.timedOut, true);
+}
+
+{
+  const result = await startAndExpectExit(
+    bootstrapEnv({
+      ADMIN_BOOTSTRAP_EMAIL: "boot@check.local",
+      ADMIN_BOOTSTRAP_PASSWORD: "chowly12345",
+    }),
+    "committed demo password",
+  );
+
+  check(
+    "the committed demo password is refused here too",
+    /committed demo password/.test(result.output),
+    true,
+  );
+}
+
+const BOOTSTRAP = { email: "bootstrapped@check.local", password: "bootstrap-password-123" };
+
+{
+  const result = await startAndExpectExit(
+    bootstrapEnv({
+      ADMIN_BOOTSTRAP_EMAIL: BOOTSTRAP.email,
+      ADMIN_BOOTSTRAP_NAME: "Bootstrapped Admin",
+      ADMIN_BOOTSTRAP_PASSWORD: BOOTSTRAP.password,
+    }),
+    "a valid bootstrap",
+  );
+
+  check("a valid bootstrap creates the admin", /Admin bootstrap created an admin/.test(result.output), true);
+  // The whole point of the warning: a password left in a dashboard leaks with it.
+  check(
+    "and says to delete the variables afterwards",
+    /still set/.test(result.output) && /DELETE them/.test(result.output),
+    true,
+  );
+  check("and never prints the password", !result.output.includes(BOOTSTRAP.password), true);
+}
+
 /* ------------------------------------------------- the production server -- */
 
 const portIsFree = async () => {
@@ -395,6 +468,17 @@ check(
   /accessToken=.*HttpOnly/i.test(adminLogin.headers.get("set-cookie") ?? ""),
   true,
 );
+
+{
+  // The account the bootstrap made, over the wire. Creating a row is not the
+  // same as being able to sign in with it.
+  const login = await post("/auth/login", BOOTSTRAP);
+  const body = await login.json();
+
+  check("the bootstrapped admin can sign in", login.status, 200);
+  check("and is an admin", body.data?.user?.role, "admin");
+  check("with the name it was given", body.data?.user?.name, "Bootstrapped Admin");
+}
 
 const customerRegister = await post("/auth/register", {
   email: "shopper@check.local",

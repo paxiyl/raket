@@ -7,6 +7,7 @@ import express from "express";
 import helmet from "helmet";
 import mongoose from "mongoose";
 
+import { bootstrapAdminFromEnv } from "./config/admin-bootstrap";
 import { connectDatabase, disconnectDatabase } from "./config/database.config";
 import { Env } from "./config/env.config";
 import { HTTPSTATUS } from "./config/http-status.config";
@@ -168,6 +169,14 @@ app.use(errorHandler);
 const startServer = async () => {
   // Fail fast and loudly: never report the API as ready without its database.
   await connectDatabase();
+
+  /*
+    After the database and before listening, so the account exists by the time
+    the first request arrives. It cannot throw — a bad value is logged and the
+    API starts anyway, because an optional convenience must not take the
+    service down.
+  */
+  await bootstrapAdminFromEnv();
 
   
   const server = app.listen(Env.PORT, () => {

@@ -64,6 +64,15 @@ const envConfig = () => ({
    */
   FIREBASE_SERVICE_ACCOUNT: getEnv("FIREBASE_SERVICE_ACCOUNT", ""),
 
+  /**
+   * Creating the first administrator without a shell. Set both, deploy, sign
+   * in, then delete them again — see `admin-bootstrap.ts`. Empty is off, which
+   * is the default and the right state once you have an account.
+   */
+  ADMIN_BOOTSTRAP_EMAIL: getEnv("ADMIN_BOOTSTRAP_EMAIL", ""),
+  ADMIN_BOOTSTRAP_PASSWORD: getEnv("ADMIN_BOOTSTRAP_PASSWORD", ""),
+  ADMIN_BOOTSTRAP_NAME: getEnv("ADMIN_BOOTSTRAP_NAME", ""),
+
   JWT_SECRET: required("JWT_SECRET"),
   JWT_EXPIRES_IN: getEnv("JWT_EXPIRES_IN", "7d"),
 });

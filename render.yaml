@@ -76,6 +76,15 @@ services:
       - key: LOG_LEVEL
         value: info
 
+      # ---- The first administrator, when there is no shell to run
+      # `npm run seed:admin` in (Render's shell is a paid feature). Set both,
+      # deploy, sign in, then DELETE them. Minimum twelve characters. The boot
+      # log warns on every start while they are still here.
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
+
       # CORS_ORIGIN is deliberately absent. In this topology the backoffice is
       # same-origin, so no cross-origin allowance is needed, and an empty
       # allow-list is the safe default the API ships with. Set it only if you

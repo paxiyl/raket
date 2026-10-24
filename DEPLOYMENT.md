@@ -288,12 +288,42 @@ Absent, the API still runs and uploads are reported as off.
 | `RAZORPAY_KEY_ID` / `_KEY_SECRET` / `_WEBHOOK_SECRET` | empty | Online payment off; cash on delivery works. |
 | `STRIPE_SECRET_KEY` / `_PUBLISHABLE_KEY` / `_WEBHOOK_SECRET` | empty | Only with `PAYMENT_PROVIDER=stripe`. |
 | `FIREBASE_SERVICE_ACCOUNT` | empty | A **path** to a JSON file on the server, never the JSON itself. Push off. |
+| `ADMIN_BOOTSTRAP_EMAIL` / `_PASSWORD` / `_NAME` | empty | Creates the first admin at boot when there is no shell. Set, deploy, sign in, **delete**. See [§5](#5-the-first-admin-account). |
 
 `api/.env.example` is the full list with the reasoning for each.
 
 ---
 
 ## 5. The first admin account
+
+Two routes. Pick the second if you have no shell — Render's **Shell** tab is a
+paid-instance feature, so on the free plan it is the only route there is.
+
+### Without a shell, from the dashboard
+
+Render dashboard → the service → **Environment** → add three variables:
+
+| Name | Value |
+|---|---|
+| `ADMIN_BOOTSTRAP_EMAIL` | the address you want to sign in with |
+| `ADMIN_BOOTSTRAP_PASSWORD` | a long password of your own, 12 characters minimum |
+| `ADMIN_BOOTSTRAP_NAME` | your name (optional) |
+
+Save. The service redeploys, and on boot — after the database connects, before
+it listens — the account is created. The log says
+`Admin bootstrap created an admin`. Sign in at `/login`.
+
+**Then delete those two variables and save again.** The log warns about it on
+every boot while they are still there, because a password sitting in a
+dashboard leaks with the dashboard. Deleting them does not remove the account.
+
+What it refuses, rather than doing quietly: one variable without the other, a
+password under 12 characters, and this repository's committed demo password. It
+never prints the password, and a bad value is logged and skipped rather than
+taking the API down with it. Setting a new password and redeploying is also how
+you recover a forgotten one.
+
+### With a shell
 
 Render dashboard → the service → **Shell**, then:
 
@@ -353,7 +383,27 @@ cd mobile
 export EXPO_PUBLIC_API_URL="https://<your-service>.onrender.com/api/v1"
 ```
 
-Then either EAS:
+### Without a computer
+
+`.github/workflows/android-build.yml` runs the build on GitHub's machines, so
+the only thing you need is the Actions tab in a browser.
+
+1. [expo.dev](https://expo.dev) → your account → **Access tokens** → create one
+   and copy it.
+2. This repository → **Settings** → **Secrets and variables** → **Actions** →
+   **New repository secret** → name it `EXPO_TOKEN` and paste the token. The
+   token belongs there and nowhere else.
+3. **Actions** tab → **Build Android app** → **Run workflow**. Paste the API
+   URL including `/api/v1`, leave the profile on `preview` for an installable
+   APK, and run it.
+
+It checks the URL is `https://` and ends in `/api/v1` before spending any build
+time, typechecks, then hands off to EAS. The download link appears on
+expo.dev → your project → **Builds**, 15–30 minutes later.
+
+### With a computer
+
+Either EAS:
 
 ```bash
 npx eas init          # fills app.json's blank extra.eas.projectId; needs an Expo account
@@ -579,8 +629,8 @@ provider.
 | 2 | Create the Cloudinary account; copy cloud name, key and secret | [§2](#2-cloudinary) |
 | 3 | Create the Render service from `render.yaml` | [§3](#3-the-render-service) |
 | 4 | Enter `MONGODB_URI` and the three Cloudinary values in Render | [§4](#4-environment-variables) |
-| 5 | Seed the first admin with your own email and password | [§5](#5-the-first-admin-account) |
-| 6 | Build the APK with `EXPO_PUBLIC_API_URL` set to the real service URL | [§6](#6-the-mobile-app) |
+| 5 | Create the first admin — dashboard variables, or the shell command | [§5](#5-the-first-admin-account) |
+| 6 | Build the APK against the real service URL — GitHub Actions, or locally | [§6](#6-the-mobile-app) |
 
 Disabled until the matching secret exists, by design:
 

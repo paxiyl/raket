@@ -1,0 +1,99 @@
+# Building the Android app without a computer.
+#
+# `eas build` normally means a terminal, Node, and a checkout — none of which
+# exist on a phone. This runs it on GitHub's machines instead, started from a
+# button on the Actions tab, which is a web page that works fine on a phone.
+#
+# Setup, once:
+#   1. expo.dev -> your account -> Access tokens -> create one, copy it.
+#   2. This repository -> Settings -> Secrets and variables -> Actions
+#      -> New repository secret -> name EXPO_TOKEN, paste the token.
+#   3. Actions tab -> "Build Android app" -> Run workflow -> paste the API URL.
+#
+# The token belongs in that secret and nowhere else: not in this file, not in a
+# commit, not in a chat message.
+name: Build Android app
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "Deployed API, including /api/v1 (e.g. https://raket-api-xxxx.onrender.com/api/v1)"
+        required: true
+        type: string
+      profile:
+        description: "preview = installable APK, production = Play Store bundle"
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - production
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fails the run immediately on a URL that cannot work, rather than
+      # spending twenty minutes of build time to produce an app that opens and
+      # reaches nothing. `app.config.ts` refuses a missing URL; these are the
+      # two ways a URL that IS set is still wrong.
+      - name: Check the API URL
+        working-directory: .
+        run: |
+          url="${{ inputs.api_url }}"
+
+          case "$url" in
+            https://*) ;;
+            *)
+              echo "::error::The API URL must start with https:// — a release build cannot use plain HTTP."
+              exit 1
+              ;;
+          esac
+
+          case "$url" in
+            */api/v1|*/api/v1/) ;;
+            *)
+              echo "::error::The API URL must end with /api/v1. Got: $url"
+              exit 1
+              ;;
+          esac
+
+          echo "Building against $url"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - run: npm ci
+
+      # Catches a type error here, where it costs a minute, instead of inside
+      # the EAS build, where it costs twenty.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: EAS build
+        env:
+          EXPO_PUBLIC_API_URL: ${{ inputs.api_url }}
+        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive --no-wait
+
+      - name: Where to get it
+        run: |
+          echo "### Build queued" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "EAS is building it now. The download link appears at" >> "$GITHUB_STEP_SUMMARY"
+          echo "<https://expo.dev/accounts> -> your project -> Builds." >> "$GITHUB_STEP_SUMMARY"
+          echo "Android builds usually take 15-30 minutes." >> "$GITHUB_STEP_SUMMARY"
