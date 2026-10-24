@@ -19,7 +19,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { useAuthProviders, useGoogleSignIn, useLogin } from "@/features/auth/use-auth";
+import { useAuthProviders, useGoogleSignIn, useLogin, useSignOutWrongRole } from "@/features/auth/use-auth";
 import { ApiError, apiMessage } from "@/lib/axios-client";
 
 type Errors = { email?: string; password?: string };
@@ -35,6 +35,7 @@ export function SignInPage() {
   const location = useLocation();
   const login = useLogin();
   const googleSignIn = useGoogleSignIn();
+  const signOutWrongRole = useSignOutWrongRole();
   // The server decides whether Google is usable at all; the button is hidden
   // rather than shown and then failing.
   const { data: providers } = useAuthProviders();
@@ -62,8 +63,19 @@ export function SignInPage() {
       { email: email.trim(), password },
       {
         onSuccess: (response) => {
-          // The API authenticates any role; only an admin belongs in here.
+          /*
+            The API authenticates any role; only an admin belongs in here.
+
+            The session is thrown away rather than just refused on screen. The
+            login succeeded, so the browser is now holding a valid auth cookie
+            for this origin — harmless in itself, since every admin route
+            checks the role server-side, but it leaves a customer signed in to
+            the backoffice origin on a shared machine, and the next reload
+            lands them on /no-access with no obvious way back to a login form.
+          */
           if (response.data.user.role !== "admin") {
+            signOutWrongRole.mutate();
+
             toast.error("This account cannot use the backoffice", {
               description: "Sign in with an admin account.",
             });
@@ -231,7 +243,21 @@ export function SignInPage() {
                         googleSignIn.mutate(idToken, {
                           onError: (error) =>
                             toast.error(apiMessage(error, "Google sign-in failed.")),
-                          onSuccess: () => void navigate(from, { replace: true }),
+                          onSuccess: (response) => {
+                            // Same rule as a password login: Google proves who
+                            // you are, not that you belong in here.
+                            if (response.data.user.role !== "admin") {
+                              signOutWrongRole.mutate();
+
+                              toast.error("This account cannot use the backoffice", {
+                                description: "Sign in with an admin account.",
+                              });
+
+                              return;
+                            }
+
+                            void navigate(from, { replace: true });
+                          },
                         })
                       }
                     />

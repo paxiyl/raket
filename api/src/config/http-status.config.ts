@@ -10,6 +10,8 @@ export const HTTPSTATUS = {
   UNPROCESSABLE_ENTITY: 422,
   TOO_MANY_REQUESTS: 429,
   INTERNAL_SERVER_ERROR: 500,
+  /** Readiness: reachable, but not able to serve yet (no database). */
+  SERVICE_UNAVAILABLE: 503,
 } as const;
 
 export type HttpStatusCodeType = (typeof HTTPSTATUS)[keyof typeof HTTPSTATUS];

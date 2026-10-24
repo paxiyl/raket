@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaListener, SafeAreaProvider } from "react-native-safe-area-context";
 import { Uniwind, useCSSVariable, useUniwind } from "uniwind";
 
+import { ApiWakeScreen } from "@/components/api-wake-screen";
 import { AppToaster } from "@/components/app-toaster";
 import { DeliveryModeProvider } from "@/features/mode/delivery-mode";
 import { useProtectedRoute } from "@/features/auth/use-protected-route";
@@ -91,6 +92,9 @@ export default function RootLayout() {
             <ThemeProvider value={navigationTheme}>
               <View className="flex-1 bg-background">
                 <StatusBar style={dark ? "light" : "dark"} />
+                {/* Over the navigator, never instead of it: the router has to
+                    stay mounted while the API is warming up. */}
+                <ApiWakeScreen>
                 <Stack screenOptions={{ headerShown: false }}>
                   {/*
                    * The restaurant page lives on the root stack, not the tabs, so it
@@ -129,6 +133,8 @@ export default function RootLayout() {
                     options={{ animation: "fade", gestureEnabled: false }}
                   />
                 </Stack>
+                </ApiWakeScreen>
+                {/* After the warm-up overlay, so a toast is never covered by it. */}
                 <AppToaster
                   background={card as string}
                   border={border as string}

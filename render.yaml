@@ -1,0 +1,84 @@
+# Render blueprint — one web service, two apps.
+#
+# WHY ONE SERVICE: the backoffice authenticates with an HTTP-only cookie, and
+# the API serves the admin bundle so that cookie is same-origin. That keeps
+# `SameSite=Lax` (not the third-party `None` browsers are phasing out), needs
+# no CORS, needs no credentialed cross-origin preflight, and keeps the admin
+# JWT out of JavaScript entirely. The customer mobile app is unaffected either
+# way: it holds its token in the device keystore and sends it as a bearer
+# header, so it talks to this same API over HTTPS from anywhere.
+#
+# It is still two separate applications with two separate front doors — the
+# customer app on a phone, the backoffice in a browser at this service's URL —
+# and one shared database behind both. "Separate origin" and "separate app" are
+# not the same requirement, and only the second one is actually asked for here.
+#
+# FREE PLAN: a free web service spins down after about 15 minutes with no
+# traffic, and the next request waits for it to boot — tens of seconds, and the
+# database connection happens before it listens, so the wait is real. Both
+# clients are built for that (see DEPLOYMENT.md § Cold starts). Free services
+# also have no uptime guarantee and a monthly instance-hour budget. Move to a
+# paid instance before this carries real orders.
+services:
+  - type: web
+    name: raket-api
+    runtime: node
+    plan: free
+    # Closest free region to Hindaun. Change it before the first deploy if you
+    # prefer another — it cannot be changed afterwards without recreating the
+    # service.
+    region: singapore
+    # The repository root, not api/: the build needs both apps, and the API
+    # resolves the admin bundle relative to its own dist/.
+    rootDir: .
+    buildCommand: bash ./render-build.sh
+    # `cd api` rather than `npm start --prefix api`, because `node dist/index.js`
+    # is resolved against the working directory.
+    startCommand: cd api && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Render injects PORT and the app reads it. Do not set it here.
+
+      # ---- Secrets. Enter these in the Render dashboard, never in this file.
+      # `sync: false` means "ask me, and keep it out of the blueprint".
+      - key: MONGODB_URI
+        sync: false
+
+      # Generated once by Render, 256 bits of randomness, and never shown in a
+      # commit or a log. Changing it later signs every session out, which is a
+      # feature when a key is suspected and a surprise otherwise.
+      - key: JWT_SECRET
+        generateValue: true
+
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      # Server-side only. It must never appear in a VITE_* or EXPO_PUBLIC_*
+      # variable — those are compiled into code that ships to devices.
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # ---- Optional integrations. Leave blank and the feature stays off; both
+      # clients ask the server what is configured rather than assuming.
+      - key: GOOGLE_CLIENT_IDS
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+
+      - key: LOG_LEVEL
+        value: info
+
+      # CORS_ORIGIN is deliberately absent. In this topology the backoffice is
+      # same-origin, so no cross-origin allowance is needed, and an empty
+      # allow-list is the safe default the API ships with. Set it only if you
+      # later host the admin app somewhere else — and read DEPLOYMENT.md
+      # § A separate admin origin first, because the cookie settings have to
+      # change with it.

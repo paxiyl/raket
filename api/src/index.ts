@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import mongoose from "mongoose";
 
 import { connectDatabase, disconnectDatabase } from "./config/database.config";
 import { Env } from "./config/env.config";
@@ -80,7 +81,48 @@ if (Env.CORS_ORIGIN) {
 configurePassport();
 app.use(passport.initialize());
 
-app.get("/health", (_request, response) => response.status(HTTPSTATUS.OK).json({ status: "ok" }));
+/*
+  Readiness, and the policy is deliberately narrow.
+
+  The server does not begin listening until `connectDatabase()` has resolved,
+  so anything that answers here has connected at least once. What this adds is
+  the case after that: Atlas drops the connection, mongoose reconnects in the
+  background, and every request in between fails on a database that the old
+  `{ status: "ok" }` still called healthy. So the answer is read off the live
+  connection rather than asserted.
+
+  - 200 `ready: true`  — mongoose is connected. Safe to send traffic.
+  - 503 `ready: false` — it is not. Render's health check fails, the clients'
+    warm-up screens keep waiting, and nobody is told the database is fine.
+
+  Mounted before the rate limiter and outside `/api/v1` on purpose: a platform
+  health check and a cold-start probe must never be the requests that use up a
+  client's budget.
+*/
+/*
+  Mongoose's `readyState` is 0–3 plus 99 ("uninitialized"), which is why this is
+  a keyed record and not an array: an array index typechecks for 0–3 and then
+  fails on the one value that is out of line.
+*/
+const DATABASE_STATES: Record<number, string> = {
+  0: "disconnected",
+  1: "connected",
+  2: "connecting",
+  3: "disconnecting",
+  99: "uninitialized",
+};
+
+app.get("/health", (_request, response) => {
+  const readyState = mongoose.connection.readyState;
+  const ready = readyState === 1;
+
+  return response.status(ready ? HTTPSTATUS.OK : HTTPSTATUS.SERVICE_UNAVAILABLE).json({
+    status: ready ? "ok" : "degraded",
+    ready,
+    database: DATABASE_STATES[readyState] ?? "unknown",
+    uptimeSeconds: Math.round(process.uptime()),
+  });
+});
 
 app.use("/api/v1", apiLimiter, routes);
 

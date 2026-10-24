@@ -99,7 +99,16 @@ const productSchema = new Schema<ProductDocument>(
     slug: { type: String, required: true, lowercase: true, trim: true, index: true },
     description: { type: String, default: "", trim: true, maxlength: 600 },
     imageUrl: { type: String, default: "" },
-    imagePreset: { type: String, enum: PRESET_KEYS },
+    /*
+      `""` is in the enum alongside the preset keys because it is what the
+      clients send to mean "no tile", and the validator says so in as many
+      words ("empty string clears it"). Without it Mongoose refused the value
+      the API had just accepted, and the refusal arrived as a 500 Internal
+      Server Error — so clearing a tile in the backoffice, which is what
+      pressing the selected tile a second time does, failed with no usable
+      message on either create or update.
+    */
+    imagePreset: { type: String, enum: [...PRESET_KEYS, ""] },
     imagePublicId: { type: String },
     unit: { type: String, required: true, trim: true, maxlength: 40 },
     brand: { type: String, default: "", trim: true, maxlength: 60, index: true },

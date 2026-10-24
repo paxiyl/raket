@@ -25,6 +25,7 @@ import { useCreateOrder, useSyncOrder, useVerifyPayment } from "@/features/order
 import { formatEta, formatPrice } from "@/lib/format";
 import { toast } from "@/lib/sonner";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { PaymentMethodPicker } from "@/components/payment-method-picker";
 import type { PaymentMethod } from "@/lib/api";
 
@@ -46,7 +47,7 @@ export default function CheckoutScreen() {
     "--color-foreground",
   ]);
 
-  const { data: basketData, isLoading } = useBasket();
+  const { data: basketData, isError: basketFailed, isLoading, refetch: refetchBasket } = useBasket();
   const { data: user } = useCurrentUser();
   const { data: address } = useDefaultAddress();
   const createOrder = useCreateOrder();
@@ -126,6 +127,26 @@ export default function CheckoutScreen() {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={primary as string} size="large" />
         </View>
+      </View>
+    );
+  }
+
+  /*
+    Before the empty state, and for the same reason as the orders list: a
+    failed basket request leaves `basket` undefined, which is the condition
+    below — so a dropped connection told the customer their basket was empty
+    on the checkout screen, where the obvious response is to go back and add
+    everything again.
+  */
+  if (basketFailed && !basket) {
+    return (
+      <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <ErrorState
+          message="We could not load your basket. Nothing has been ordered and nothing has been lost."
+          onRetry={() => void refetchBasket()}
+          title="We could not load your basket"
+        />
       </View>
     );
   }

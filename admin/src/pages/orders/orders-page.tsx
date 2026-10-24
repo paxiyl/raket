@@ -7,6 +7,7 @@ import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { OrderActions } from "@/components/orders/order-actions";
 import { OrderStatCards } from "@/components/orders/order-stat-cards";
 import { PaymentBadge } from "@/components/orders/payment-badge";
+import { QueryError } from "@/components/query-error";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -148,7 +149,8 @@ export function OrdersPage() {
     ...(status !== "all" ? { status: status as OrderStatus } : {}),
   };
 
-  const { data, isLoading } = useAdminOrders(filters);
+  const { data, error, isError, isFetching, refetch } = useAdminOrders(filters);
+  const isLoading = isFetching && data === undefined;
   const { data: restaurants } = useRestaurantOptions();
 
   const total = data?.total ?? 0;
@@ -159,6 +161,15 @@ export function OrdersPage() {
         <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
         <p className="text-muted-foreground">Track and manage orders from payment to delivery.</p>
       </div>
+
+      {isError ? (
+        <QueryError
+          error={error}
+          isRetrying={isFetching}
+          onRetry={() => void refetch()}
+          what="orders"
+        />
+      ) : null}
 
       <OrderStatCards isLoading={isLoading} stats={data?.stats} />
 

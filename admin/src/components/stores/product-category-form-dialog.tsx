@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ImageUploadField } from "@/components/image-upload-field";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -108,18 +109,14 @@ export function ProductCategoryFormDialog({
             />
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="cat-image">Image URL</FieldLabel>
-            <Input
-              id="cat-image"
-              onChange={(event) => setImageUrl(event.target.value)}
-              placeholder="https://…"
-              value={imageUrl}
-            />
-            <FieldDescription>
-              Optional. Without one the tile shows the first letter on the tint.
-            </FieldDescription>
-          </Field>
+          <ImageUploadField
+            description="Optional. Without one the tile shows the first letter on the tint."
+            folder="product-categories"
+            id="cat-image"
+            label="Shelf image"
+            onChange={setImageUrl}
+            value={imageUrl}
+          />
 
           <Field>
             <FieldLabel>Tile tint</FieldLabel>

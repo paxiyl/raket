@@ -75,6 +75,19 @@ export const googleSignInController = asyncHandler(async (request: Request, resp
   const input = googleSignInSchema.parse(request.body);
   const result = await signInWithGoogle(input);
 
+  /*
+    The cookie, same as a password login.
+
+    It was missing, and only the browser noticed: the backoffice has no access
+    to the token in the response body — it is read from an HTTP-only cookie the
+    server sets — so Google sign-in returned 200 with a user, the app cached it,
+    and the very next `/auth/me` came back 401 because nothing had been set.
+    Signing in with Google bounced straight back to the login screen. The phone
+    was unaffected, which is why it survived: mobile reads `accessToken` out of
+    this body and sends it as a bearer header.
+  */
+  setJwtAuthCookie(response, result.accessToken);
+
   return response.status(HTTPSTATUS.OK).json({ message: "Signed in", data: result });
 });
 

@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ImageUploadField } from "@/components/image-upload-field";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -208,15 +209,14 @@ export function StoreFormDialog({ store, onOpenChange, open }: Props) {
             />
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="store-image">Logo URL</FieldLabel>
-            <Input
-              id="store-image"
-              onChange={(event) => set("imageUrl", event.target.value)}
-              placeholder="https://…"
-              value={form.imageUrl}
-            />
-          </Field>
+          <ImageUploadField
+            description="Shown on the shop card and at the top of its page."
+            folder="stores"
+            id="store-image"
+            label="Shop logo"
+            onChange={(imageUrl) => set("imageUrl", imageUrl)}
+            value={form.imageUrl}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field>

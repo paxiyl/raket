@@ -11,6 +11,10 @@ places and are deliberately left alone — see the transformation plan.
 
 ## Project documents
 
+- [DEPLOYMENT.md](DEPLOYMENT.md) — hosting: the Render topology and why it keeps
+  the admin cookie same-origin, Atlas and Cloudinary setup, the environment
+  variables, the safe admin seed, the mobile release, and the free-tier
+  cold-start behaviour both clients are built for.
 - [OnlineMall transformation plan](docs/plans/2026-10-06-onlinemall-transformation.md) —
   current source of truth: decisions taken, phase status, and the checklist.design audit.
 - [Chowly v1 plan](docs/plans/2026-09-03-chowly-v1.md) — specification, confirmed decisions,

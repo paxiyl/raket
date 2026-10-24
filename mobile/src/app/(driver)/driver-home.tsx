@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCSSVariable } from "uniwind";
 
 import { DriverHomeSkeleton } from "@/components/driver-home-skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { useCurrentUser, useLogout } from "@/features/auth/use-auth";
 import { useDriverHome, useSetOnline } from "@/features/driver/use-driver";
 import type { Delivery } from "@/lib/api";
@@ -100,7 +101,7 @@ export default function DriverHomeScreen() {
   ]);
 
   const { data: user } = useCurrentUser();
-  const { data, isLoading, isRefetching, refetch } = useDriverHome();
+  const { data, isError, isLoading, isRefetching, refetch } = useDriverHome();
   const setOnline = useSetOnline();
   const logout = useLogout();
 
@@ -186,6 +187,19 @@ export default function DriverHomeScreen() {
       >
         {isLoading ? (
           <DriverHomeSkeleton />
+        ) : isError && !data ? (
+          /*
+            A rider reads two things off this screen: the jobs waiting and the
+            cash they are carrying. Both come from `data`, and with the request
+            failed every section below draws its empty state — so a failed
+            refresh said "no deliveries available" and "nothing to hand in" to
+            a rider who might have had both.
+          */
+          <ErrorState
+            message="We could not load your jobs. Pull down to refresh, or tap Try again."
+            onRetry={() => void refetch()}
+            title="We could not load your queue"
+          />
         ) : (
           <>
             {/*

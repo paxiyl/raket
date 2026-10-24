@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 import { useCSSVariable } from "uniwind";
 
 import { OrderListSkeleton } from "@/components/order-list-skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { Screen } from "@/components/ui/screen";
 import { useOrders, useReorder } from "@/features/orders/use-orders";
 import type { Order, OrderStatus } from "@/lib/api";
@@ -203,7 +204,7 @@ const PastOrderRow = ({
 export default function OrdersScreen() {
   const router = useRouter();
   const [primary, subtle] = useCSSVariable(["--color-primary", "--color-subtle-foreground"]);
-  const { data: orders, isLoading, isRefetching, refetch } = useOrders();
+  const { data: orders, isError, isLoading, isRefetching, refetch } = useOrders();
   const reorder = useReorder();
 
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -249,6 +250,27 @@ export default function OrdersScreen() {
       <Screen edges={["top"]}>
         {header}
         <OrderListSkeleton />
+      </Screen>
+    );
+  }
+
+  /*
+    Checked BEFORE the empty state, because the two are not the same thing and
+    the screen could not tell them apart: a failed request leaves `orders`
+    undefined, `placed` empty, and `isLoading` false — so a customer with a
+    live order on its way was told "No orders yet", offered a Start shopping
+    button, and given nothing to retry. A dropped connection must not look like
+    a history that was never there.
+  */
+  if (isError) {
+    return (
+      <Screen edges={["top"]}>
+        {header}
+        <ErrorState
+          message="We could not load your orders. Your order history is safe — this is just this phone's connection."
+          onRetry={() => void refetch()}
+          title="We could not load your orders"
+        />
       </Screen>
     );
   }

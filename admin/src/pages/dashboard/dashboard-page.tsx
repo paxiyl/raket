@@ -8,6 +8,7 @@ import { RevenueSplitCard } from "@/components/dashboard/revenue-split-card";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { StatCards } from "@/components/dashboard/stat-cards";
+import { QueryError } from "@/components/query-error";
 import { Button } from "@/components/ui/button";
 import { useOverview } from "@/features/analytics/use-overview";
 import { useSession } from "@/features/auth/use-session";
@@ -24,7 +25,11 @@ const greeting = () => {
 export function DashboardPage() {
   const { user } = useSession();
   const [days, setDays] = useState(7);
-  const { data, isLoading } = useOverview(days);
+  const { data, error, isError, isFetching, refetch } = useOverview(days);
+  // `isLoading` is false once a query has failed, and every card below falls
+  // back to its zero state — so without the banner a failed load looks exactly
+  // like a day with no orders.
+  const isLoading = isFetching && data === undefined;
 
   const firstName = user?.name.split(" ")[0] ?? "there";
 
@@ -49,6 +54,15 @@ export function DashboardPage() {
           Export report
         </Button>
       </div>
+
+      {isError ? (
+        <QueryError
+          error={error}
+          isRetrying={isFetching}
+          onRetry={() => void refetch()}
+          what="the dashboard"
+        />
+      ) : null}
 
       <StatCards isLoading={isLoading} today={data?.today} yesterday={data?.yesterday} />
 

@@ -8,6 +8,7 @@ import { useCSSVariable } from "uniwind";
 import { DeliveryCodeCard } from "@/components/delivery-code-card";
 import { OrderDetailSkeleton } from "@/components/order-detail-skeleton";
 import { OrderProgress } from "@/components/order-progress";
+import { ErrorState } from "@/components/ui/error-state";
 import { useOrder, useReorder } from "@/features/orders/use-orders";
 import type { OrderStatus } from "@/lib/api";
 import { BRAND } from "@/lib/brand";
@@ -38,7 +39,7 @@ export default function OrderDetailScreen() {
     "--color-foreground",
   ]);
 
-  const { data: order, isLoading } = useOrder(id ?? "");
+  const { data: order, isError, isLoading, refetch } = useOrder(id ?? "");
   const reorder = useReorder();
 
   const close = () => (router.canGoBack() ? router.back() : router.replace("/orders"));
@@ -63,6 +64,29 @@ export default function OrderDetailScreen() {
       <View className="h-11 w-11" />
     </View>
   );
+
+  /*
+    The failure case, which `isLoading || !order` swallowed.
+
+    Once the request has failed, `isLoading` is false and `order` is still
+    undefined — so the condition below stayed true and the screen showed its
+    loading skeleton forever, on a phone that was never going to load it. A
+    skeleton with no end is the worst of the three states: it says work is
+    happening, it offers nothing to press, and the only way out is to kill the
+    app.
+  */
+  if (isError && !order) {
+    return (
+      <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+        {header}
+        <ErrorState
+          message="We could not load this order. Your order is safe — this is just this phone's connection."
+          onRetry={() => void refetch()}
+          title="We could not load this order"
+        />
+      </View>
+    );
+  }
 
   if (isLoading || !order) {
     return (

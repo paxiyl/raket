@@ -101,6 +101,38 @@ caught by reading:
   shop it deleted; its unlink used a bare `$exists`, which `sanitizeFilter`
   casts to a literal, so it matched nothing and reported success.
 
+- **The production half of the server.** `deploy.check.mjs` boots it with
+  `NODE_ENV=production` against a throwaway MongoDB, which is the only way to
+  reach the branch of `src/index.ts` that serves the admin bundle. It asserts
+  the readiness policy (200 only with a live connection, 503 with the real
+  state otherwise), the shell and its cache headers, a client-side deep link
+  falling back to the shell while an unknown `/api` path stays a JSON 404, the
+  upload endpoint's role and folder rules — which need no Cloudinary account,
+  because who may write where is not a question about credentials — a clean
+  `SIGTERM` inside a platform grace period, and the four configurations the
+  service must refuse to start with at all.
+
+  It also spawns the server as `node --import tsx` rather than `npx tsx`,
+  because `npx` is a second process in front of the real one: a signal sent to
+  it kills the shim while the API underneath carries on as an orphan, which
+  looks exactly like a broken shutdown. Measured on the real process, shutdown
+  takes about 20ms.
+
+- **An order, end to end.** `order-flow.check.mjs` is the one suite that
+  follows a single piece of data all the way round: a customer registers, saves
+  an address, baskets a product and places a cash-on-delivery order; an
+  administrator finds that same order, opens it, and advances it twice; the
+  customer reads the new status back. Then the refusals — a customer cannot
+  change a status, add a product, or read another customer's order — and an
+  administrator's new product appearing to a signed-out browser.
+
+  Cash on delivery on purpose: it needs no gateway, which is the state a fresh
+  deployment is in, and it is the method a fresh deployment can actually take.
+  It found the `imagePreset: ""` crash — the validator documents the empty
+  string as "clears it", the Mongoose enum refused it, and the refusal reached
+  the client as a 500, so clearing a tile in the backoffice failed with no
+  usable message.
+
 ## Running them
 
 They need `mongodb-memory-server`, which downloads a MongoDB binary on first
@@ -115,14 +147,21 @@ run and is deliberately not a dependency of the API:
     npx tsx src/scripts/checks/schema-drift.check.mjs
     npx tsx src/scripts/checks/import-cycles.check.mjs
     npx tsx src/scripts/checks/api.check.mjs
+    npx tsx src/scripts/checks/order-flow.check.mjs
+    npx tsx src/scripts/checks/deploy.check.mjs
 
 `mobile-routing.check.mjs` is the exception: it needs no database and no
 network, so it runs on its own in well under a second.
 
     npx tsx src/scripts/checks/mobile-routing.check.mjs
 
-The last one boots a server on a random high port and tears down its own
-process group; the others need nothing running.
+`api.check.mjs` boots a server on a random high port and tears down its own
+process group; `order-flow.check.mjs` and `deploy.check.mjs` each boot one too,
+addressed directly rather than through a process group. The others need nothing
+running.
+
+`deploy.check.mjs` wants `admin/dist` to exist — build `admin/` first, or it
+covers the "no backoffice here" refusal instead of the serving path.
 
 Each exits non-zero on the first failing assertion and prints every result, so
 the output reads as a list of what is true rather than a pass/fail.

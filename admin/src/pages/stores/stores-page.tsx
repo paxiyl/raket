@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { StoreFormDialog } from "@/components/stores/store-form-dialog";
 import { DataTable, type DataTableColumns } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { QueryError } from "@/components/query-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -32,7 +33,15 @@ export function StoresPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: stores, isLoading } = useStores(debounced ? { search: debounced } : {});
+  const {
+    data: stores,
+    error,
+    isError,
+    isFetching,
+    refetch,
+  } = useStores(debounced ? { search: debounced } : {});
+  // A failed load would otherwise be indistinguishable from an empty table.
+  const isLoading = isFetching && stores === undefined;
 
   const columns: DataTableColumns<AdminStore> = [
     {
@@ -107,6 +116,15 @@ export function StoresPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {isError ? (
+        <QueryError
+          error={error}
+          isRetrying={isFetching}
+          onRetry={() => void refetch()}
+          what="shops"
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Stores</h1>

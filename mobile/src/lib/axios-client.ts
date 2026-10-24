@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 
 import { clearAccessToken, getAccessToken } from "@/features/auth/token-storage";
+import { waitForApi } from "./api-gate";
 
 /**
  * Set EXPO_PUBLIC_API_URL in mobile/.env. On an Android emulator run
@@ -46,6 +47,17 @@ export const API: AxiosInstance = axios.create({
 });
 
 API.interceptors.request.use(async (config) => {
+  /*
+    Held until the launch warm-up has an answer about the API, so a service
+    that has spun down produces one wake-up screen instead of every screen's
+    worth of queries failing at once. Opens on failure as well as success — see
+    `api-gate.ts` — so a real outage still reaches the app's own error states.
+
+    Not a retry. A request waiting here has not been sent, so nothing can be
+    sent twice because of it.
+  */
+  await waitForApi();
+
   const token = await getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
 

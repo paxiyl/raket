@@ -39,6 +39,22 @@ export const useGoogleSignIn = () => {
   });
 };
 
+/**
+ * Discards a session that authenticated but does not belong in the backoffice.
+ *
+ * Deliberately not `useLogout`: that one navigates to /login, and this runs ON
+ * /login, where a redirect to the page you are already looking at would clear
+ * the toast explaining why. It only drops the cookie and the cached user.
+ */
+export const useSignOutWrongRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: logoutMutationFn,
+    onSettled: () => queryClient.removeQueries({ queryKey: queryKeys.currentUser }),
+  });
+};
+
 export const useLogout = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();

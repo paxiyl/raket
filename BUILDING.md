@@ -3,6 +3,10 @@
 Three apps, built independently. Every command below was run against this
 tree; where something does not work yet, it says so rather than pretending.
 
+For hosting it rather than building it — Render, MongoDB Atlas, Cloudinary, the
+first admin account, and an APK pointed at a real API — see
+[DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Prerequisites
 
 - **Node** 22+ and npm 10+.
@@ -62,7 +66,7 @@ incompatible with TypeScript 7.
 
 ```bash
 cd admin
-npm install
+npm ci                # package-lock.json is committed
 npm run dev           # vite, port 5173
 npm run build         # tsc -b, then vite build
 npm run lint          # oxlint
@@ -105,14 +109,19 @@ licences are accepted, so they are not listed above.
 ### Checking everything still works
 
 ```bash
-cd api
+cd ../admin && npm ci && npm run build        # deploy.check serves this build
+cd ../api
 npm install --no-save mongodb-memory-server   # once; downloads a MongoDB binary
 npm run check
 ```
 
-Twelve suites, a little over 300 assertions, about three minutes. They are not
-a unit-test suite — there is no runner and no coverage goal. They cover the
-three things reading the code cannot catch:
+Fifteen scripts, 464 assertions. They are not a unit-test suite — there is no
+runner and no coverage goal. They cover the three things reading the code
+cannot catch:
+
+Build `admin/` first. `deploy.check.mjs` asserts the production serving path
+against the real bundle; without one it falls back to asserting the explanatory
+404 instead, which still passes but covers less.
 
 - **Arithmetic and flows that move money or grant access.** Registration as
   each role, admin approval granting it, the cash ledger, order status hooks.
@@ -126,6 +135,19 @@ three things reading the code cannot catch:
   endpoint, and `route-coverage.check.mjs` compares the API's route table
   against every path the two clients call, because those halves live in
   different codebases and agree only by hand.
+- **The half of the server that only runs in production.** `deploy.check.mjs`
+  boots it the way Render does and asserts what nothing else reaches: the
+  readiness policy on `/health`, the admin bundle served with the right cache
+  headers, a client-side deep link falling back to the shell while an unknown
+  `/api` path stays a JSON 404, the upload endpoint's role and folder rules, a
+  clean `SIGTERM`, and the four configurations the service must refuse to start
+  with.
+- **An order, end to end.** `order-flow.check.mjs` places a cash-on-delivery
+  order as a customer, finds it in the backoffice, moves it through two statuses
+  as an administrator, reads the new status back on the customer side, and then
+  checks what a customer cannot do. The claim both apps rest on — one API, one
+  database, so each sees the other's work — was true only by inspection before
+  this.
 - **Decisions that only run on a phone.** Three of the suites read `mobile/`
   rather than the API, because the code they cover was unreachable from here:
   where the app sends each role after signing in, whether a customer can pay at
@@ -324,7 +346,9 @@ through the backoffice.
 - `expo-haptics` and `expo-notifications` are likewise absent and unreferenced.
 - `mobile/package.json` has a `reset-project` script whose
   `scripts/reset-project.js` is not in the tree.
-- No lockfiles are committed, so installs are not reproducible.
+- Lockfiles are committed for all three apps now; `admin/package-lock.json` was
+  the one missing, so an admin install was not reproducible and a Render build
+  could not use `npm ci`.
 - Pharmacy licensing has to be settled before any prescription medicine is
   sold. `requiresPrescription` exists and the API refuses to basket those
   products; that is a guard, not compliance.
