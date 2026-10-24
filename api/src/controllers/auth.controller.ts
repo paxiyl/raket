@@ -1,0 +1,117 @@
+import { Request, Response } from "express";
+
+import { isGoogleSignInConfigured } from "../config/google.config";
+import { HTTPSTATUS } from "../config/http-status.config";
+import { asyncHandler } from "../middlewares/asyncHandler.middleware";
+import { UserDocument, UserModel } from "../models/user.model";
+import { findDefaultAddress } from "../services/address.service";
+import { myApplication } from "../services/partner-application.service";
+import { loginUser, registerUser, signInWithGoogle } from "../services/auth.service";
+import { clearJwtAuthCookie, setJwtAuthCookie } from "../utils/cookie";
+import {
+  googleSignInSchema,
+  loginSchema,
+  pushTokenSchema,
+  registerSchema,
+} from "../validators/auth.validator";
+
+export const registerController = asyncHandler(async (request: Request, response: Response) => {
+  const input = registerSchema.parse(request.body);
+  const { accessToken, application, defaultAddress, hasAddress, user } =
+    await registerUser(input);
+
+  setJwtAuthCookie(response, accessToken);
+
+  return response.status(HTTPSTATUS.CREATED).json({
+    // Named for what happened, because the two outcomes need different screens:
+    // a customer goes shopping, an applicant goes to a waiting state.
+    message: application ? "Account created and your application sent" : "Account created",
+    data: { accessToken, application, defaultAddress, hasAddress, user },
+  });
+});
+
+export const loginController = asyncHandler(async (request: Request, response: Response) => {
+  const input = loginSchema.parse(request.body);
+  const { accessToken, defaultAddress, hasAddress, user } = await loginUser(input);
+
+  setJwtAuthCookie(response, accessToken);
+
+  return response.status(HTTPSTATUS.OK).json({
+    message: "Logged in",
+    data: { accessToken, defaultAddress, hasAddress, user },
+  });
+});
+
+export const logoutController = asyncHandler(async (_request: Request, response: Response) => {
+  clearJwtAuthCookie(response);
+
+  return response.status(HTTPSTATUS.OK).json({ message: "Logged out" });
+});
+
+export const currentUserController = asyncHandler(async (request: Request, response: Response) => {
+  const user = request.user as UserDocument;
+
+  const [defaultAddress, application] = await Promise.all([
+    findDefaultAddress(user._id.toString()),
+    /*
+      Reported here so the client knows where an account STANDS from the one
+      call it already makes on launch.
+
+      Without it the app could only learn about an application from the
+      register response, which it no longer has a moment later — so the route
+      guard and the sign-up screen disagreed about where a new applicant
+      belongs, and whichever redirect landed last won.
+    */
+    myApplication(user),
+  ]);
+
+  return response.status(HTTPSTATUS.OK).json({
+    message: "Current user",
+    data: { application, defaultAddress, hasAddress: defaultAddress !== null, user },
+  });
+});
+
+export const googleSignInController = asyncHandler(async (request: Request, response: Response) => {
+  const input = googleSignInSchema.parse(request.body);
+  const result = await signInWithGoogle(input);
+
+  return response.status(HTTPSTATUS.OK).json({ message: "Signed in", data: result });
+});
+
+/** Lets a client hide the Google button rather than offer one that cannot work. */
+export const authProvidersController = asyncHandler(
+  async (_request: Request, response: Response) => {
+    return response
+      .status(HTTPSTATUS.OK)
+      .json({ message: "Providers", data: { google: isGoogleSignInConfigured() } });
+  },
+);
+
+/**
+ * Registering a device for notifications.
+ *
+ * $addToSet rather than $push: re-opening the app re-registers the same token,
+ * and a list with the same token forty times would send forty notifications.
+ */
+export const registerPushTokenController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const { token } = pushTokenSchema.parse(request.body);
+    const user = request.user as UserDocument;
+
+    await UserModel.updateOne({ _id: user._id }, { $addToSet: { pushTokens: token } }).exec();
+
+    return response.status(HTTPSTATUS.OK).json({ message: "Notifications on" });
+  },
+);
+
+/** Called on sign-out, so the next person on this phone is not notified. */
+export const removePushTokenController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const { token } = pushTokenSchema.parse(request.body);
+    const user = request.user as UserDocument;
+
+    await UserModel.updateOne({ _id: user._id }, { $pull: { pushTokens: token } }).exec();
+
+    return response.status(HTTPSTATUS.OK).json({ message: "Notifications off" });
+  },
+);
