@@ -1,82 +1,51 @@
 import { Image } from "expo-image";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { BRAND } from "@/lib/brand";
 
 /*
-  The Raket lockup.
+  The Raket logo, as supplied.
 
-  The mark is the R-rocket from the brand artwork, as an image rather than a
-  drawing: it is a hand-drawn letterform, and a path traced off a 170px JPEG
-  would be an impression of it rather than the thing itself. The PNGs under
-  `assets/images/` are all built from one extracted shape — the same one the
-  app icon and the splash use — so the home screen and this header cannot drift
-  apart.
+  It is the artwork itself, lifted off the white page it was drawn on so it can
+  sit on a coloured surface without a white square around it. Nothing else was
+  done to it.
 
-  The name stays type: it is sharper at every size than artwork would be, and
-  "Raket" in the text colour with "Delivery" in red keeps the two words reading
-  as one.
+  There is no separate name beside it any more: the badge already carries
+  "Raket Delivery" and "For Smart Villages", and setting the name again next to
+  a logo that contains it reads as a mistake.
 */
-const markBrand = require("../../../assets/images/logo-mark.png");
-const markWhite = require("../../../assets/images/logo-mark-white.png");
+const logo = require("../../../assets/images/logo.png");
 
 type Props = {
-  /** "brand" renders for light surfaces, "inverse" renders white over media. */
+  /** Kept so callers over colour and over light surfaces read the same. */
   tone?: "brand" | "inverse";
   size?: "hero" | "title" | "compact";
-  /** Shows "(Hindaun)" under the name. On for first-run and auth, off in chrome. */
+  /**
+   * Accepted and ignored. The badge already says where this is for, and a
+   * second line under it was duplicating its own ribbon.
+   */
   showCity?: boolean;
 };
 
-const nameSize = {
-  compact: "text-title",
-  hero: "text-hero",
-  title: "text-display",
-} as const;
+/*
+  Width in points. The badge is dense — a rider, a village, six category
+  tiles and three lines of type — so the small step is still large enough for
+  the wordmark inside it to be read rather than guessed at.
+*/
+const WIDTH = { compact: 76, hero: 216, title: 160 } as const;
 
-/** The mark is set to roughly the cap height of each step. */
-const markSize = { compact: 26, hero: 60, title: 34 } as const;
-
-/** The red the logo is drawn in, which is the mark's own colour, not a token. */
-const BRAND_RED = "#EB0A06";
-
-export function Wordmark({ tone = "brand", size = "title", showCity = false }: Props) {
-  const inverse = tone === "inverse";
-  const mark = markSize[size];
+export function Wordmark({ size = "title" }: Props) {
+  const width = WIDTH[size];
 
   return (
-    <View className="flex-row items-center gap-2">
-      {/* expo-image ignores className for sizing, so the box is a style. */}
+    <View accessibilityLabel={BRAND.fullName} accessibilityRole="header">
+      {/* expo-image ignores className for sizing, so the box is a style.
+          The badge is very close to square; `contain` keeps it honest. */}
       <Image
         contentFit="contain"
-        source={inverse ? markWhite : markBrand}
-        style={{ height: mark, width: mark }}
+        source={logo}
+        style={{ height: width, width }}
       />
-
-      <View className="gap-0.5">
-        <Text
-          accessibilityLabel={BRAND.fullName}
-          accessibilityRole="header"
-          className={`font-title ${nameSize[size]} ${inverse ? "text-white" : "text-foreground"}`}
-          style={{ letterSpacing: -0.6 }}
-        >
-          Raket
-          <Text className={inverse ? "text-white" : ""} style={inverse ? undefined : { color: BRAND_RED }}>
-            Delivery
-          </Text>
-        </Text>
-
-        {showCity ? (
-          <Text
-            className={`font-label text-label uppercase ${
-              inverse ? "text-white/80" : "text-text-secondary"
-            }`}
-            style={{ letterSpacing: 1.4 }}
-          >
-            {BRAND.city}
-          </Text>
-        ) : null}
-      </View>
     </View>
   );
 }

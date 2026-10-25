@@ -117,32 +117,43 @@ only: item in/out of basket, order paid, delivery confirmed.
 
 ### The mark
 
-The R-rocket from the brand artwork: a bold white "R" whose bowl is a rocket
-nose with a warm porthole, trailing three flame strokes to the lower left, on
-the logo red `#EB0A06`.
+The supplied logo, used as the logo: the rider on a scooter, the village, the
+RAKET DELIVERY wordmark, the six category tiles and the "For Smart Villages"
+ribbon, inside the yellow badge.
 
-It is an IMAGE, not a drawn path, and deliberately so. It is a hand-drawn
-letterform; a path traced off the 170px emblem in the source JPEG would be an
-impression of it rather than the thing itself. What is in the repository was
-recovered as a two-colour mask from the artwork, straightened, enlarged and
-repainted flat — the same drawing, crisp at any size.
+The only thing done to the artwork is removing the white page it was drawn on,
+so it can sit on a coloured surface without a white square around it. That was
+flood-filled from the border rather than keyed by colour — the logo is full of
+white it has to keep (the wordmark's outlines, the clouds, the rider's shoes),
+and a plain "make white transparent" would punch holes through all of it. Only
+white connected to the outside edge is the page.
 
 | | |
 |---|---|
-| Red | `#EB0A06`, sampled from the delivery box in the logo. |
-| Porthole | `#F7931E`. The only third colour. |
-| Mark | White on red; red on light surfaces; white over colour and photography. |
-| Floor | Legible at 32px. |
+| Master | `mobile/assets/images/logo.png`, and the same file as `admin/src/assets/raket-logo.png`. |
+| Icon | On white, which is what the badge's outer ring is drawn against. |
+| Splash | On the logo's red, `#EB0A06`. |
+| Adaptive foreground | 0.66 of the canvas, against the launcher's circle mask. |
+| Themed icon | The R emblem from inside the logo, not the badge. |
 
-Every file under `mobile/assets/images/` and the two in `admin/src/assets/` is
-built from one extracted shape, so the app icon, the splash, the browser tab
-and both wordmarks cannot drift apart. The Android themed icon drops the
-porthole — a hole in a silhouette only fills with the launcher's tint — and the
-adaptive foreground is scaled to half the canvas so the circle mask does not
-crop the flames.
+Two things follow from it being an illustration rather than a symbol, and both
+are deliberate:
 
-The splash is the logo's red rather than the app's green: it has to match the
-icon the person just tapped. The rest of the interface stays green.
+**No name beside it.** The badge already carries "Raket Delivery" and "For
+Smart Villages". `Wordmark` renders the badge alone; setting the name again in
+type next to a logo that contains it reads as a mistake. The component still
+takes `tone` and `showCity` so its callers did not have to change, and ignores
+them.
+
+**The Android themed icon is the R emblem, not the badge.** A themed icon is
+one flat silhouette the launcher recolours, and an illustration flattens to a
+featureless disc. The R-with-flames printed on the delivery box is the only
+part of the logo that still means anything with the colour taken away.
+
+Below about 64px the wordmark inside the badge stops being readable and it
+reads as a red-and-green badge rather than as a name. That is the cost of an
+illustrated logo at icon sizes, and it is a known, accepted tradeoff here
+rather than something to be fixed by substituting a different mark.
 
 ### Icons and imagery
 

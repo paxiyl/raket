@@ -100,7 +100,7 @@ export default function SignInScreen() {
           </Pressable>
 
           <Animated.View className="mt-2 items-center" entering={enter()}>
-            <Wordmark showCity />
+            <Wordmark />
           </Animated.View>
 
           <Animated.View className="mt-8 gap-2" entering={enter()}>

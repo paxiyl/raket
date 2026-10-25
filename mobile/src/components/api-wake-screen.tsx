@@ -10,7 +10,7 @@ import { useApiWake, WAKE_REVEAL_MS } from "@/features/system/use-api-wake";
 import { BRAND } from "@/lib/brand";
 import { API_URL_CONFIGURED } from "@/lib/health";
 
-const mark = require("../../assets/images/logo-mark-white.png");
+const mark = require("../../assets/images/logo.png");
 
 /*
   The two colours `expo-splash-screen` is configured with in app.json.
@@ -22,7 +22,9 @@ const mark = require("../../assets/images/logo-mark-white.png");
   green field after a red icon reads as the wrong app opening.
 */
 const SPLASH_BACKGROUND = { dark: "#8E0603", light: "#EB0A06" } as const;
-const MARK_WIDTH = 144;
+// Wider than the old mark: the badge carries the name and a ribbon of type,
+// and at 144 those were present but unreadable.
+const MARK_WIDTH = 230;
 
 type Props = {
   /** Rendered once the API answers. */
