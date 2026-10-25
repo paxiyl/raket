@@ -23,7 +23,6 @@ import { useLogin } from "@/features/auth/use-auth";
 import type { AppRole } from "@/lib/api";
 import { type FieldErrors, type SignInFields, validateSignIn } from "@/features/auth/validation";
 import { useEnter } from "@/lib/motion";
-import { landingRouteFor } from "@/features/auth/use-session";
 import { toast } from "@/lib/sonner";
 
 export default function SignInScreen() {
@@ -53,9 +52,24 @@ export default function SignInScreen() {
     login.mutate(
       { email: email.trim(), intendedRole: role, password },
       {
+        /*
+          No navigation here. The route guard does it.
+
+          This screen used to redirect as well, and the two did not agree for
+          one render: the guard reads the session cache, and for the frame
+          between the cache being seeded and this component re-rendering it
+          still saw no role — so it computed the CUSTOMER landing route and
+          sent a kitchen owner to the shopping home, which then bounced to the
+          counter once the role arrived. On a warm API that is a flicker. On a
+          free instance waking from sleep it is several seconds of sitting on
+          the wrong app, and it is exactly what "it signs me in as a customer
+          first" looks like from the outside.
+
+          One writer for "you have just authenticated", so there is nothing
+          left to disagree about.
+        */
         onSuccess: (response) => {
           toast.success(`Welcome back, ${response.data.user.name.split(" ")[0]}`);
-          router.replace(landingRouteFor(response.data.user.role, response.data.hasAddress));
         },
         onError: (error) => {
           toast.error("We could not sign you in", { description: error.message });

@@ -104,13 +104,14 @@ export default function SignUpScreen() {
         onSuccess: (response) => {
           const firstName = response.data.user.name.split(" ")[0];
 
-          // An applicant goes to a screen that says where their request stands.
-          // Dropping them on the customer home is what made this look broken.
-          if (response.data.application) {
-            router.replace("/application-status");
-
-            return;
-          }
+          /*
+            An applicant goes to a screen that says where their request stands,
+            and the route guard is what takes them there — `postAuthRouteFor`
+            returns /application-status for a pending one. This screen used to
+            navigate too, and the two writers racing is the original bug this
+            whole module exists to prevent.
+          */
+          if (response.data.application) return;
 
           if (joinAs !== "customer") {
             /*
@@ -131,8 +132,13 @@ export default function SignUpScreen() {
             return;
           }
 
+          /*
+            And a plain customer is the guard's job too. The hardcoded
+            `/home : /location` here ignored the role entirely, so it was also
+            the line that sent an approved shopkeeper signing up a second
+            account into the shopping app.
+          */
           toast.success(`Welcome to Raket, ${firstName}`);
-          router.replace(response.data.hasAddress ? "/home" : "/location");
         },
       },
     );

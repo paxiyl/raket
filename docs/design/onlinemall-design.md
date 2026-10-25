@@ -115,6 +115,30 @@ deliberately neither.
 feedback infrastructure unprompted. Call sites are already correct. Three events
 only: item in/out of basket, order paid, delivery confirmed.
 
+### The mark
+
+A rocket, tilted 35°, with a three-stroke trail. The name is one letter off the
+word, and the tilt is the whole idea: a rocket standing on a launchpad is an
+emoji, one already moving is a delivery.
+
+Drawn once and used everywhere — `mobile/src/components/ui/rocket-mark.tsx` and
+`admin/src/components/rocket-mark.tsx` carry the same path data, and every PNG
+under `mobile/assets/images/` is a render of it. Change the paths, re-render
+the icons from them; never redraw one on its own.
+
+| | |
+|---|---|
+| Body | A pointed arch, not a cone on a cylinder. It keeps its outline at any size, and inverted it is a map pin. |
+| Window | `#116E3C` on white, `#1FA85C` on the inverse. The only second colour. |
+| Fins and trail | `#8FD9AE` on light, white on the inverse. |
+| Tilt | 35°, rotated about (256, 262) — below the geometric centre, because the trail carries weight. |
+| Floor | Legible at 32px. Below that use the body alone. |
+
+Three colours, no gradients, and nothing that disappears when it is small. The
+Android themed icon gets the silhouette with the window dropped — a hole in it
+would only fill with the launcher's tint — and the adaptive foreground is
+scaled to 0.56 so the circle mask does not take the fins off.
+
 ### Icons and imagery
 
 Ionicons, outline family, 1.75 stroke. 24px in chrome, 18px in controls, 10px inside

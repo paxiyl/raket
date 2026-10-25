@@ -656,6 +656,40 @@ if (pending) {
     ["restaurant"],
     { body: { isOpen: false }, method: "PATCH", token: ownerToken },
   );
+  /*
+    A kitchen is paid out of an order, not a placer of one.
+
+    The app keeps owners off the shopping screens, but the app is not the only
+    way to reach this API — and a shopkeeper's or kitchen's own basket has no
+    meaning downstream: commission, the rider's cash ledger and the vendor
+    settlement are all computed FROM the order they are on the other side of.
+  */
+  await expectKeys("a kitchen owner has no basket", "/basket", [], {
+    status: 403,
+    token: ownerToken,
+  });
+  await expectKeys("a kitchen owner cannot basket a product", "/basket/products", [], {
+    body: { productId: "000000000000000000000000", quantity: 1 },
+    method: "POST",
+    status: 403,
+    token: ownerToken,
+  });
+  await expectKeys("a kitchen owner cannot place an order", "/orders", [], {
+    body: { paymentMethod: "cod" },
+    method: "POST",
+    status: 403,
+    token: ownerToken,
+  });
+  /*
+    Reading is still theirs, deliberately. A role is granted by approving an
+    application, which changes an EXISTING account — so an owner approved this
+    week may have ordered groceries last week, and locking the whole router
+    would make their own history unreadable to them.
+  */
+  await expectKeys("but their own past orders stay readable", "/orders", ["orders"], {
+    token: ownerToken,
+  });
+
   await expectKeys("a kitchen owner cannot reach the shop counter", "/store-owner/overview", [], {
     status: 403,
     token: ownerToken,

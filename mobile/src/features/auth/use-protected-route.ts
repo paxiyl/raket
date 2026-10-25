@@ -16,16 +16,16 @@ import { useSession } from "./use-session";
  * here is only the wiring: read the session, read the segments, navigate.
  */
 export const useProtectedRoute = () => {
-  const { group, isResolving, isSignedIn, landingRoute, postAuthRoute } = useSession();
+  const { canShop, group, isResolving, isSignedIn, landingRoute, postAuthRoute } = useSession();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     const next = redirectFor(
-      { group, isResolving, isSignedIn, landingRoute, postAuthRoute },
+      { canShop, group, isResolving, isSignedIn, landingRoute, postAuthRoute },
       segments[0],
     );
 
     if (next) router.replace(next);
-  }, [group, isResolving, isSignedIn, landingRoute, postAuthRoute, router, segments]);
+  }, [canShop, group, isResolving, isSignedIn, landingRoute, postAuthRoute, router, segments]);
 };

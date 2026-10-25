@@ -42,6 +42,45 @@ export const GROUP_FOR_ROLE: Record<string, string> = {
  */
 export const ROLE_GROUPS = ["(customer)", "(driver)", "(kitchen)", "(store)"];
 
+/**
+ * Who may shop. Exactly one role.
+ *
+ * A shopkeeper, a kitchen and a rider are on the OTHER SIDE of the counter:
+ * they are paid out of an order, and a basket belonging to one of them is a
+ * person buying from themselves. The API refuses it outright now; this is the
+ * same rule on the phone, so the screens are never offered in the first place.
+ *
+ * Admins are not customers either. They cannot sign into the app at all, but
+ * the rule should not depend on that remaining true.
+ */
+export const canShop = (role?: string): boolean => (role ?? "customer") === "customer";
+
+/**
+ * The root segments that ARE the shopping experience.
+ *
+ * `ROLE_GROUPS` polices the four front doors, which is why a shopkeeper cannot
+ * sit on the customer home. It did nothing about these, because they are not
+ * groups — they are pushed screens shared with onboarding and order tracking,
+ * and every one of them was reachable by a shopkeeper with a basket.
+ *
+ * Deliberately NOT here: `order`, `track` and `payment-methods`. A rider opens
+ * an order mid-delivery and a shopkeeper opens one from their counter; those
+ * are the same screens, not shopping.
+ *
+ * `store` and `restaurant` are the customer-facing shop and kitchen pages. The
+ * owners' own screens live under `(store)` and `(kitchen)`, which are different
+ * segments, and `product-new` / `dish-new` are theirs too.
+ */
+export const SHOPPING_SEGMENTS = [
+  "category",
+  "checkout",
+  "dish",
+  "order-confirmed",
+  "product",
+  "restaurant",
+  "store",
+];
+
 export const groupForRole = (role?: string): string =>
   GROUP_FOR_ROLE[role ?? "customer"] ?? "(customer)";
 
@@ -96,6 +135,8 @@ export const redirectFor = (
   session: {
     /** The group this ACCOUNT belongs to. */
     group: string;
+    /** Whether this account is allowed to shop at all. */
+    canShop: boolean;
     isResolving: boolean;
     isSignedIn: boolean;
     landingRoute: AppRoute;
@@ -143,6 +184,17 @@ export const redirectFor = (
     opening one is left where they are.
   */
   if (ROLE_GROUPS.includes(group) && group !== session.group) return session.landingRoute;
+
+  /*
+    The shopping screens, for somebody who is not a customer.
+
+    The rule above only covers the four front doors, so a shopkeeper bounced off
+    the customer home could still open a product page, a shop page or checkout
+    from a link, a back gesture or a stale screen in the stack — and basket a
+    product. The API refuses the basket write, but the right place to find that
+    out is not an error toast at the Add button.
+  */
+  if (!session.canShop && SHOPPING_SEGMENTS.includes(group)) return session.landingRoute;
 
   return null;
 };

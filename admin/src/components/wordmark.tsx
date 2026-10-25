@@ -1,3 +1,4 @@
+import { RocketMark } from "@/components/rocket-mark";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -8,14 +9,20 @@ type Props = {
 };
 
 /**
- * The Raket lockup. Set in type rather than loaded as artwork, so it stays
- * sharp at every size and matches the mobile app's mark exactly.
+ * The Raket lockup: the rocket, then the name.
+ *
+ * Both are drawn rather than loaded as artwork, so they stay sharp at every
+ * size, and the rocket is the same geometry the app icons are rendered from —
+ * the browser tab, the sign-in page and the phone's home screen are one object.
  */
 export function Wordmark({ className, size = "sm", tone = "brand" }: Props) {
   const large = size === "lg";
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <RocketMark className={large ? "size-11" : "size-7"} tone={tone} />
+
+      <div className="flex flex-col">
       <span
         className={cn(
           "font-semibold tracking-tight",
@@ -36,6 +43,7 @@ export function Wordmark({ className, size = "sm", tone = "brand" }: Props) {
       >
         Hindaun · Operations
       </span>
+      </div>
     </div>
   );
 }

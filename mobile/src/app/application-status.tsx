@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { TextField } from "@/components/ui/text-field";
 import { useCurrentUser } from "@/features/auth/use-auth";
+import { useSession } from "@/features/auth/use-session";
 import {
   useApplyToBePartner,
   useMyApplication,
@@ -43,6 +44,18 @@ const ROLE_ICON: Record<PartnerRole, keyof typeof Ionicons.glyphMap> = {
  */
 export default function ApplicationStatusScreen() {
   const router = useRouter();
+  /*
+    Where this account actually belongs, rather than the customer home.
+
+    Both buttons below used to go to /home unconditionally. For an APPROVED
+    shopkeeper or kitchen — who reaches this screen from the profile row to see
+    that their application went through — the primary action was "Start
+    shopping", which dropped them in the customer app, where the route guard
+    immediately bounced them back to their own counter. That bounce is what
+    "it signs me in as a customer first" looked like, and the button that
+    caused it was labelled as if shopping were the point of their account.
+  */
+  const { canShop, landingRoute } = useSession();
   const [primary, warning, success, error, subtle] = useCSSVariable([
     "--color-primary",
     "--color-warning",
@@ -107,7 +120,7 @@ export default function ApplicationStatusScreen() {
     );
   };
 
-  const close = () => (router.canGoBack() ? router.back() : router.replace("/home"));
+  const close = () => (router.canGoBack() ? router.back() : router.replace(landingRoute));
 
   if (isLoading) {
     return (
@@ -264,7 +277,7 @@ export default function ApplicationStatusScreen() {
             />
             <Button
               label="Not now"
-              onPress={() => router.replace("/home")}
+              onPress={() => router.replace(landingRoute)}
               variant="outline"
             />
           </View>
@@ -274,8 +287,10 @@ export default function ApplicationStatusScreen() {
               <Button label="Check again" loading={isRefetching} onPress={() => void refetch()} />
             ) : null}
             <Button
-              label="Start shopping"
-              onPress={() => router.replace("/home")}
+              // A shop, a kitchen and a rider do not shop here; their own app
+              // is the thing to go back to.
+              label={canShop ? "Start shopping" : "Back to my dashboard"}
+              onPress={() => router.replace(landingRoute)}
               variant={status === "pending" ? "outline" : "primary"}
             />
           </View>

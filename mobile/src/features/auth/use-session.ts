@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getCurrentUserQueryFn } from "@/lib/api";
 import { queryKeys } from "@/lib/query-client";
-import { groupForRole, landingRouteFor, postAuthRouteFor } from "./routes";
+import { canShop, groupForRole, landingRouteFor, postAuthRouteFor } from "./routes";
 import { getAccessToken } from "./token-storage";
 
 // Re-exported so callers keep importing "where do I belong" from one place,
 // while the decision itself lives in an import-free module a check can run.
-export { GROUP_FOR_ROLE, ROLE_GROUPS, landingRouteFor, postAuthRouteFor } from "./routes";
+export { GROUP_FOR_ROLE, ROLE_GROUPS, canShop, landingRouteFor, postAuthRouteFor } from "./routes";
 
 /**
  * One source of truth for "who is signed in and where do they belong".
@@ -48,6 +48,11 @@ export const useSession = () => {
      * a decision is still a customer, so they wait in the customer app.
      */
     group: groupForRole(user?.role),
+    /**
+     * Whether this account may shop. A shop, a kitchen and a rider are paid
+     * out of an order rather than placing one.
+     */
+    canShop: canShop(user?.role),
     landingRoute: landingRouteFor(user?.role, hasAddress),
     postAuthRoute: postAuthRouteFor(user?.role, hasAddress, application),
     application,

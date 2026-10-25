@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/ui/google-icon";
 import { signInWithGoogle } from "@/features/auth/google-sign-in";
 import { useGoogleAvailable, useGoogleSignIn } from "@/features/auth/use-auth";
-import { landingRouteFor } from "@/features/auth/use-session";
 import type { AppRole } from "@/lib/api";
 import { toast } from "@/lib/sonner";
 
@@ -68,7 +67,9 @@ export function GoogleButton({ intendedRole, variant = "outline" }: Props) {
           toast.error("We could not sign you in", { description: error.message }),
         onSuccess: (response) => {
           toast.success(`Welcome, ${response.data.user.name.split(" ")[0]}`);
-          router.replace(landingRouteFor(response.data.user.role, response.data.hasAddress));
+          // Navigation is the route guard's, not this button's — see the note
+          // in the sign-in screen. Two writers disagreed for a render and put
+          // owners on the customer home on their way to their own app.
         },
       },
     );
