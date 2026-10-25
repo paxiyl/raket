@@ -13,13 +13,15 @@ import { API_URL_CONFIGURED } from "@/lib/health";
 const mark = require("../../assets/images/logo-mark-white.png");
 
 /*
-  The same two colours `expo-splash-screen` is configured with in app.json, so
-  the hand-off from the native splash to this is a continuation rather than a
-  flash. They are literals for that reason: these have to match the native
-  splash, which is built from app.json at prebuild time and cannot read a
-  CSS variable.
+  The two colours `expo-splash-screen` is configured with in app.json.
+
+  Literals, and they have to stay in step with that file by hand: the native
+  splash is built from app.json at prebuild time and cannot read a CSS
+  variable. They are the LOGO's red rather than a theme token, because what
+  this has to match is the app icon the person just tapped — a white mark on a
+  green field after a red icon reads as the wrong app opening.
 */
-const SPLASH_BACKGROUND = { dark: "#10140F", light: "#1FA85C" } as const;
+const SPLASH_BACKGROUND = { dark: "#8E0603", light: "#EB0A06" } as const;
 const MARK_WIDTH = 144;
 
 type Props = {

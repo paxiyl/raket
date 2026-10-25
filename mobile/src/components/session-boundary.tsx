@@ -4,21 +4,16 @@ import { useUniwind } from "uniwind";
 
 const mark = require("../../assets/images/logo-mark-white.png");
 
-/**
- * Shown while the stored token and /auth/me decide which screen comes first.
- * The redirect itself lives in `useProtectedRoute`, mounted by the root layout.
- *
- * Deliberately identical to the splash screen — same colour, same mark, same
- * size — so the handover from the native splash is invisible.
- *
- * The colour was still Chowly's teal, `#00BFA5`, while app.json's
- * `expo-splash-screen` block had moved to Raket green and grown a dark
- * variant. The comment above it claimed the two matched, so nothing read as
- * wrong until the app ran: the native splash faded out green and this faded in
- * teal, on every single launch. Both values now come from the same place the
- * native splash is built from.
- */
-const SPLASH_BACKGROUND = { dark: "#10140F", light: "#1FA85C" } as const;
+/*
+  The two colours `expo-splash-screen` is configured with in app.json.
+
+  Literals, and they have to stay in step with that file by hand: the native
+  splash is built from app.json at prebuild time and cannot read a CSS
+  variable. They are the LOGO's red rather than a theme token, because what
+  this has to match is the app icon the person just tapped — a white mark on a
+  green field after a red icon reads as the wrong app opening.
+*/
+const SPLASH_BACKGROUND = { dark: "#8E0603", light: "#EB0A06" } as const;
 const MARK_WIDTH = 144;
 
 export function SessionLoading() {

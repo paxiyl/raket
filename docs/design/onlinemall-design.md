@@ -117,27 +117,32 @@ only: item in/out of basket, order paid, delivery confirmed.
 
 ### The mark
 
-A rocket, tilted 35°, with a three-stroke trail. The name is one letter off the
-word, and the tilt is the whole idea: a rocket standing on a launchpad is an
-emoji, one already moving is a delivery.
+The R-rocket from the brand artwork: a bold white "R" whose bowl is a rocket
+nose with a warm porthole, trailing three flame strokes to the lower left, on
+the logo red `#EB0A06`.
 
-Drawn once and used everywhere — `mobile/src/components/ui/rocket-mark.tsx` and
-`admin/src/components/rocket-mark.tsx` carry the same path data, and every PNG
-under `mobile/assets/images/` is a render of it. Change the paths, re-render
-the icons from them; never redraw one on its own.
+It is an IMAGE, not a drawn path, and deliberately so. It is a hand-drawn
+letterform; a path traced off the 170px emblem in the source JPEG would be an
+impression of it rather than the thing itself. What is in the repository was
+recovered as a two-colour mask from the artwork, straightened, enlarged and
+repainted flat — the same drawing, crisp at any size.
 
 | | |
 |---|---|
-| Body | A pointed arch, not a cone on a cylinder. It keeps its outline at any size, and inverted it is a map pin. |
-| Window | `#116E3C` on white, `#1FA85C` on the inverse. The only second colour. |
-| Fins and trail | `#8FD9AE` on light, white on the inverse. |
-| Tilt | 35°, rotated about (256, 262) — below the geometric centre, because the trail carries weight. |
-| Floor | Legible at 32px. Below that use the body alone. |
+| Red | `#EB0A06`, sampled from the delivery box in the logo. |
+| Porthole | `#F7931E`. The only third colour. |
+| Mark | White on red; red on light surfaces; white over colour and photography. |
+| Floor | Legible at 32px. |
 
-Three colours, no gradients, and nothing that disappears when it is small. The
-Android themed icon gets the silhouette with the window dropped — a hole in it
-would only fill with the launcher's tint — and the adaptive foreground is
-scaled to 0.56 so the circle mask does not take the fins off.
+Every file under `mobile/assets/images/` and the two in `admin/src/assets/` is
+built from one extracted shape, so the app icon, the splash, the browser tab
+and both wordmarks cannot drift apart. The Android themed icon drops the
+porthole — a hole in a silhouette only fills with the launcher's tint — and the
+adaptive foreground is scaled to half the canvas so the circle mask does not
+crop the flames.
+
+The splash is the logo's red rather than the app's green: it has to match the
+icon the person just tapped. The rest of the interface stays green.
 
 ### Icons and imagery
 
