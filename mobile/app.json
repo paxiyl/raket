@@ -2,6 +2,7 @@
   "expo": {
     "name": "Raket",
     "slug": "raket-delivery",
+    "owner": "paxiyls-team",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
