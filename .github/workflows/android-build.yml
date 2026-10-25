@@ -130,6 +130,39 @@ jobs:
           git commit -m "Link the EAS project ($created)"
           git push origin HEAD:${{ github.ref_name }}
 
+      # The URL has to be written into eas.json, not just exported here.
+      #
+      # `eas build` uploads the project and the build runs on Expo's machines,
+      # which do not inherit this runner's environment — only what the profile
+      # declares. The first attempt exported EXPO_PUBLIC_API_URL as a step env
+      # and the EAS worker still re-read app.config.ts without it, so the
+      # guard there refused the build. Which was the guard doing its job: the
+      # alternative was an APK that installs, opens, and looks for the API on
+      # the phone itself.
+      #
+      # eas.json already carries the deployed URL as its default, so a build
+      # run by hand works too. This only overwrites it when the workflow was
+      # given a different one.
+      - name: Point the build at the API
+        env:
+          API_URL: ${{ inputs.api_url }}
+          PROFILE: ${{ inputs.profile }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const json = JSON.parse(fs.readFileSync("eas.json", "utf8"));
+            const profile = process.env.PROFILE;
+
+            json.build[profile] = json.build[profile] || {};
+            json.build[profile].env = {
+              ...(json.build[profile].env || {}),
+              EXPO_PUBLIC_API_URL: process.env.API_URL,
+            };
+
+            fs.writeFileSync("eas.json", JSON.stringify(json, null, 2) + "\n");
+            console.log(`${profile} profile will build against ${process.env.API_URL}`);
+          '
+
       - name: EAS build
         env:
           EXPO_PUBLIC_API_URL: ${{ inputs.api_url }}

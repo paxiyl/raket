@@ -9,12 +9,18 @@
       "distribution": "internal"
     },
     "preview": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://raket-api-7sq3.onrender.com/api/v1"
+      },
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://raket-api-7sq3.onrender.com/api/v1"
+      },
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"

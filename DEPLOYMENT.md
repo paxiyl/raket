@@ -377,11 +377,10 @@ The app needs the service's real URL, which does not exist until the service
 does. There is nothing to guess here, and a build pointed at the wrong host is
 an APK that cannot reach anything.
 
-```bash
-cd mobile
-# The deployed API, including /api/v1.
-export EXPO_PUBLIC_API_URL="https://<your-service>.onrender.com/api/v1"
-```
+`eas.json` already names the deployed API for the `preview` and `production`
+profiles, so there is nothing to export. Building against a different
+deployment means editing that `env` block — an exported shell variable does not
+reach the EAS build machine.
 
 ### Without a computer
 
@@ -398,7 +397,15 @@ the only thing you need is the Actions tab in a browser.
    APK, and run it.
 
 It checks the URL is `https://` and ends in `/api/v1` before spending any build
-time, typechecks, then hands off to EAS. The download link appears on
+time, typechecks, writes the URL into `eas.json`, then hands off to EAS.
+
+That write is the part worth knowing about. `eas build` uploads the project and
+the build runs on Expo's machines, which do **not** inherit the environment of
+whatever started the build — only what the profile in `eas.json` declares. Set
+`EXPO_PUBLIC_API_URL` as a shell variable and the EAS worker will still read
+`app.config.ts` without it and refuse the build. `eas.json` already carries the
+deployed URL as the default for both distributable profiles, so a build run by
+hand works too; the workflow only overwrites it when given a different one. The download link appears on
 expo.dev → your project → **Builds**, 15–30 minutes later.
 
 ### With a computer
