@@ -10,7 +10,8 @@
     },
     "preview": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://raket-api-7sq3.onrender.com/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://raket-api-7sq3.onrender.com/api/v1",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1006668530225-besnfkabnq81m9pjnshq9r14vr1ffgr4.apps.googleusercontent.com"
       },
       "distribution": "internal",
       "android": {
@@ -19,7 +20,8 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://raket-api-7sq3.onrender.com/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://raket-api-7sq3.onrender.com/api/v1",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1006668530225-besnfkabnq81m9pjnshq9r14vr1ffgr4.apps.googleusercontent.com"
       },
       "autoIncrement": true,
       "android": {

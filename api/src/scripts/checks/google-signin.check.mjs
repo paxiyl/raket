@@ -285,6 +285,98 @@ if (configured) {
   }
 }
 
+/* ----------------------------------------------------------- mobile/eas.json -- */
+
+/*
+  The other build-time half, and the other artefact that is IN the repository.
+
+  A .env file does not reach an EAS build machine: `eas build` uploads the
+  project and the build runs on Expo's infrastructure, which sees only what the
+  chosen profile in eas.json declares. So for any build you distribute, the web
+  client ID has to be in eas.json's `env` for that profile, or the APK ships
+  without one and `google-sign-in.ts` hides the button before any Google
+  Console problem is reached.
+
+  `development` is excluded on purpose: a dev client gets its JavaScript from
+  Metro at run time and reads mobile/.env, so it is not a distributable build
+  and not a missing-configuration bug.
+*/
+const easPath = `${repo}mobile/eas.json`;
+const DISTRIBUTABLE = ["preview", "production"];
+
+console.log("\n=== mobile/eas.json ===\n");
+
+let easProfiles = null;
+
+if (!existsSync(easPath)) {
+  console.log("  Not present.");
+} else {
+  try {
+    const eas = JSON.parse(readFileSync(easPath, "utf8"));
+    easProfiles = eas.build ?? {};
+
+    for (const name of DISTRIBUTABLE) {
+      const env = easProfiles[name]?.env ?? {};
+      const declared = env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+      console.log(`  ${name.padEnd(12)} ${declared ?? "(not declared)"}`);
+    }
+  } catch (error) {
+    console.log(`  Could not be parsed: ${error.message}`);
+  }
+}
+
+if (easProfiles) {
+  const missing = DISTRIBUTABLE.filter(
+    (name) => !easProfiles[name]?.env?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  );
+
+  if (missing.length > 0) {
+    console.log(
+      `\n  NOT DECLARED in: ${missing.join(", ")}. An APK built from one of those\n` +
+        "  profiles carries no web client ID, and the mobile Google button is\n" +
+        "  hidden before any Console problem is reached. See\n" +
+        "  GOOGLE_SIGNIN_SETUP.md \u00a7 6c.",
+    );
+  }
+
+  /*
+    Asserted rather than merely printed: the phone and the server have to agree
+    on one audience, and a mismatch here is a 401 on every sign-in that looks
+    exactly like a server problem. Only checked once both ends are configured —
+    neither being set is the shipped default and not a failure.
+  */
+  for (const name of DISTRIBUTABLE) {
+    const declared = easProfiles[name]?.env?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+    if (!declared) continue;
+
+    check(
+      `${name}: EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID has the shape of a client ID`,
+      CLIENT_ID.test(declared),
+      true,
+    );
+    check(
+      `${name}: it is not a client SECRET`,
+      declared.startsWith(SECRET_PREFIX),
+      false,
+    );
+
+    const androidIds = androidClients.map((entry) => entry.client_id);
+    check(
+      `${name}: it is not an Android client ID from google-services.json`,
+      androidIds.includes(declared),
+      false,
+    );
+
+    if (ids.length > 0) {
+      check(
+        `${name}: it matches the server's GOOGLE_CLIENT_IDS`,
+        ids.includes(declared),
+        true,
+      );
+    }
+  }
+}
+
 /* ------------------------------------------------- what this cannot answer -- */
 
 console.log("\n=== What this check CANNOT tell you ===\n");
@@ -301,9 +393,9 @@ console.log(
     "    at build time and is not visible to this process. Check the served bundle:",
     "      curl -s https://<service>/ | grep -o 'assets/index-[^\"]*\\.js'",
     "      curl -s https://<service>/assets/index-<hash>.js | grep -oiE '[0-9]+-[a-z0-9_]+\\.apps\\.googleusercontent\\.com'",
-    "  - What the APK was built with. EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is compiled",
-    "    into the bundle the same way, and it is NOT declared in eas.json's build",
-    "    profiles today, so a build made from them carries none.",
+    "  - What the APK on the phone was ACTUALLY built with. What eas.json declares",
+    "    today (printed above) is what the NEXT build will carry; an APK already",
+    "    installed was compiled with whatever that file said at the time.",
   ].join("\n"),
 );
 
