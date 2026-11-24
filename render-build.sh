@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 #
+# ============================================================================
+# SUPERSEDED by the Dockerfile at the repository root. See NORTHFLANK.md.
+#
+# Kept as the rollback path alongside render.yaml until the Northflank deploy
+# has passed NORTHFLANK.md Verifying the deploy. Delete both together.
+#
+# The Dockerfile is this script, staged: same order (admin before api, because
+# the API serves the admin bundle), same --include=dev (NODE_ENV=production
+# makes npm skip the devDependencies that vite, tsc and tsup live in), same two
+# assertions that the build outputs exist.
+# ============================================================================
+#
 # The production build, as one script so the Render dashboard and this
 # repository cannot drift apart.
 #

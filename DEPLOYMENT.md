@@ -1,5 +1,25 @@
 # Deploying Raket
 
+> **HOSTING HAS MOVED TO NORTHFLANK — see [NORTHFLANK.md](NORTHFLANK.md).**
+>
+> This document still describes the **Render** deploy. It is kept because most
+> of it is not about Render at all, and because it is the rollback path until
+> the Northflank deploy is verified.
+>
+> | Section | Status |
+> |---|---|
+> | [The architecture, and why](#the-architecture-and-why) | **Still current** — the one-service, same-origin-cookie topology is exactly what Northflank runs. One exception: the paragraph about *"when the service is asleep, the browser has nothing to render"* no longer applies. Northflank does not sleep. |
+> | [1. MongoDB Atlas](#1-mongodb-atlas) | **Still current.** Atlas did not move. |
+> | [2. Cloudinary](#2-cloudinary) | **Still current.** Cloudinary did not move. |
+> | [3. The Render service](#3-the-render-service) | **Superseded** by [NORTHFLANK.md §§ 1–3](NORTHFLANK.md#1-create-the-project). |
+> | [4. Environment variables](#4-environment-variables) | **Superseded** by [NORTHFLANK.md § 4](NORTHFLANK.md#4-runtime-environment-variables). The variables are the same; where they go is not, and `VITE_*` is a **build argument**, not a runtime variable — see [NORTHFLANK.md § 5](NORTHFLANK.md#5-build-arguments). |
+> | [5. The first admin account](#5-the-first-admin-account) | **Use the shell route only.** Northflank has shell access, so the `ADMIN_BOOTSTRAP_*` workaround in *"Without a shell"* is obsolete — [NORTHFLANK.md § 8](NORTHFLANK.md#8-the-first-administrator). |
+> | [6. The mobile app](#6-the-mobile-app) | **Still current**, except that `eas.json` has to point at the new host. |
+> | [7. Optional integrations](#7-optional-integrations) | **Still current**, but § *Google sign-in* is incomplete — it omits the two build-time variables that are the actual reason it never worked. Use [GOOGLE_SIGNIN_SETUP.md](GOOGLE_SIGNIN_SETUP.md). |
+> | [Cold starts on the free plan](#cold-starts-on-the-free-plan) | **No longer applies.** Northflank's free tier is always on. The client-side machinery it describes is still live and still useful during redeploys — [NORTHFLANK.md § What is now dead code](NORTHFLANK.md#what-is-now-dead-code) says which parts are now redundant and which are not. |
+> | [Verifying a deployment](#verifying-a-deployment) | **Still current**, against the new host. |
+> | [A separate admin origin](#a-separate-admin-origin) | **Still current, and now a weaker idea than it was.** Its one real argument was the pre-wake blank page, which no longer happens. |
+
 One Render web service, one MongoDB Atlas cluster, one Cloudinary account, and
 an APK built against the service's real URL.
 
@@ -598,7 +618,7 @@ npm install --no-save mongodb-memory-server   # once; downloads a MongoDB binary
 npm run check
 ```
 
-Fifteen suites. The three that matter most for a deployment:
+Sixteen suites. The three that matter most for a deployment:
 
 - **`deploy.check.mjs`** boots the API the way Render does — `NODE_ENV=production`
   against a throwaway MongoDB — and asserts the production-only half of

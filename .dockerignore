@@ -1,0 +1,75 @@
+# What never belongs in the build context.
+#
+# Two reasons, and the second is the one that bites: a smaller context uploads
+# faster, AND a `node_modules` copied in from the host would shadow the one
+# `npm ci` just installed — with whatever platform-specific binaries your
+# laptop or Termux happened to build. `npm ci` inside the image is the only
+# install that should ever matter.
+
+# ---- Dependencies. Installed in the image, never copied into it.
+node_modules/
+**/node_modules/
+
+# ---- Build output. Produced by the image's own build stages. A stale
+# admin/dist copied in from the host is the failure mode worth naming: the
+# image would serve a backoffice older than the code it was built from, with
+# nothing in the logs saying so.
+dist/
+**/dist/
+build/
+**/build/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# ---- Secrets. A .env in the context ends up in an image layer, and layers
+# are readable by anyone who can pull the image. Configuration comes from
+# Northflank's environment at run time.
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# ---- Expo / native. The mobile app is not part of this image at all. The
+# generated native projects are large, and a keystore in a layer is a signing
+# key handed to anyone with the image.
+.expo/
+**/.expo/
+android/
+**/android/
+ios/
+**/ios/
+*.apk
+*.aab
+*.jks
+*.keystore
+apk-parts/
+
+# ---- The mobile app itself. Nothing in the server image reads it.
+mobile/
+
+# ---- Git. `.git` is often the largest single thing in the context, and its
+# history can contain secrets that were committed and later removed.
+.git/
+.gitignore
+.github/
+
+# ---- Documentation and planning. No effect on the build.
+*.md
+docs/
+
+# ---- Logs, editor and OS noise.
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/
+
+# ---- Render's own build entrypoint. Superseded by this Dockerfile; kept in
+# the repository until the Northflank deploy is verified. See NORTHFLANK.md.
+render.yaml
+render-build.sh
+
+# ---- Docker's own files.
+Dockerfile
+.dockerignore

@@ -1,3 +1,35 @@
+# ============================================================================
+# SUPERSEDED — this blueprint is no longer how Raket is deployed.
+#
+# Hosting moved to Northflank: see NORTHFLANK.md. The compute is now built from
+# the Dockerfile at the repository root and runs on a Northflank combined
+# service in the asia-southeast (Singapore) region — the same region this
+# blueprint already deployed to, so nothing about latency changes. MongoDB Atlas
+# and Cloudinary did not move.
+#
+# WHY: a Render free web service spins down after about 15 minutes idle, and the
+# next request waits tens of seconds for the container, Node and the Atlas
+# connection in series. Northflank's free Sandbox tier is always on.
+#
+# KEPT ON PURPOSE, DO NOT DELETE YET. This file plus render-build.sh are the
+# rollback path, and they are the only record of the Render configuration that
+# Northflank was mapped from. Delete both only after the Northflank deploy has
+# passed NORTHFLANK.md § Verifying the deploy.
+#
+# Two things in here were WRONG even for Render, and are fixed in NORTHFLANK.md
+# rather than here — they are the reason Google sign-in never worked:
+#
+#   - VITE_GOOGLE_CLIENT_ID is never declared, so every admin bundle built from
+#     this blueprint had no Google client id compiled in and the button could
+#     not render. VITE_* is read at BUILD time; it is not runtime config.
+#   - ADMIN_BOOTSTRAP_EMAIL / _PASSWORD below exist only because Render's free
+#     plan has no shell. Northflank does, so use `npm run seed:admin` from the
+#     container shell and never set those variables again.
+#
+# The reasoning below about the one-service topology and the same-origin cookie
+# is still correct and still what NORTHFLANK.md implements.
+# ============================================================================
+
 # Render blueprint — one web service, two apps.
 #
 # WHY ONE SERVICE: the backoffice authenticates with an HTTP-only cookie, and

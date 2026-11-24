@@ -115,7 +115,7 @@ npm install --no-save mongodb-memory-server   # once; downloads a MongoDB binary
 npm run check
 ```
 
-Fifteen scripts, 464 assertions. They are not a unit-test suite — there is no
+Sixteen scripts, 520 assertions (that is the PASS count: `npm run check | grep -c "^PASS"`). They are not a unit-test suite — there is no
 runner and no coverage goal. They cover the three things reading the code
 cannot catch:
 

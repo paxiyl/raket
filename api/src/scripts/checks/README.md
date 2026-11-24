@@ -133,6 +133,35 @@ caught by reading:
   the client as a 500, so clearing a tile in the backoffice failed with no
   usable message.
 
+- **Configuration that spans three codebases.**
+  `google-signin.check.mjs` is the odd one out: it needs no database and no
+  network, because the bug it exists for is not in the code at all. Google
+  sign-in is implemented on all three surfaces and has never worked, and the
+  reason is that its configuration lives in four places that cannot see each
+  other — `GOOGLE_CLIENT_IDS` read from the hosting dashboard at run time,
+  `VITE_GOOGLE_CLIENT_ID` compiled into the admin bundle at build time,
+  `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` compiled into the APK, and an Android
+  OAuth client the phone never names, read out of `google-services.json` by the
+  native module. The phone's symptom is `DEVELOPER_ERROR`; the browser's
+  symptom is no button at all. Neither says which end is wrong.
+
+  So this prints the server's whole view — what it parsed, what
+  `/auth/providers` will report, what `google-services.json` actually contains
+  — and then asserts what is decidable without a Google account: that no
+  separator was mangled, that nothing in the audience list is a client *secret*
+  or malformed, and that no **Android** client id is being used as an audience,
+  which it can tell because `google-services.json` records the type and a
+  Google client id's shape does not. When the server is configured it also
+  requires the Android half to exist, with a SHA-1 against it.
+
+  An unconfigured server PASSES: Google sign-in is optional, off is the shipped
+  default, and both clients hide the button rather than offer one that cannot
+  work. What fails is a HALF-configured deployment — which is the state that
+  produces a button that appears and then refuses. It ends by listing what it
+  cannot know (whether an id is really of type Web, whether the APK's signing
+  key matches the registered SHA-1) and the command that can.
+  See GOOGLE_SIGNIN_SETUP.md.
+
 ## Running them
 
 They need `mongodb-memory-server`, which downloads a MongoDB binary on first
