@@ -12,7 +12,12 @@
           "package_name": "in.raketdelivery.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1006668530225-besnfkabnq81m9pjnshq9r14vr1ffgr4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCcjf7-pzaEIfq9OfJy2dQIX0naaoLI-Qk"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1006668530225-besnfkabnq81m9pjnshq9r14vr1ffgr4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

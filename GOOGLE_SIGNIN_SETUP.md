@@ -390,24 +390,48 @@ either format silently.
 
 ### Creating the Android clients
 
-> **`[YOU]`** For **each** fingerprint collected above: **Credentials → Create
-> credentials → OAuth client ID → Application type: Android**.
+**Do this in the FIREBASE console, not the Cloud Console.** Both can create an
+Android OAuth client, and only one of them links it to the Firebase app that
+generates `google-services.json`.
+
+> **`[YOU]`** For **each** fingerprint collected above: **Firebase Console →
+> Project settings (gear) → Your apps →** the Android app
+> (`in.raketdelivery.app`) **→ SHA certificate fingerprints → Add
+> fingerprint**. Paste the SHA-1 and save.
 >
-> | Field | Value |
-> |---|---|
-> | Name | e.g. `Raket Android (EAS preview)` |
-> | Package name | `in.raketdelivery.app` |
-> | SHA-1 certificate fingerprint | the one fingerprint |
->
-> You will never use these IDs. They exist so Google recognises your app.
+> Firebase creates the matching Android OAuth client in the underlying Google
+> Cloud project for you, and — the part that matters — writes it into
+> `google-services.json` as a `client_type: 1` entry. You never name the client
+> or see its ID.
+
+**Why not the Cloud Console.** Creating the client by hand there
+(*Credentials → Create credentials → OAuth client ID → Android*) produces a
+client that is real and correct and that Firebase does not know belongs to this
+app. Regenerating `google-services.json` afterwards gives you a file with the
+web client in it and **no `client_type: 1` entry at all**, which is
+indistinguishable from having done nothing. Observed, not theorised — it is
+what happened on this project.
+
+A related tell: if the Cloud Console offered you a **downloadable credentials
+JSON** for the client you just made, with an `"installed"` key in it, that is
+not an Android client. Android clients have no such download. A `Desktop app`
+or `iOS` client has one, looks plausible, and will never satisfy Google
+Sign-In. Delete it and use the Firebase route.
 
 **The package name must be exactly `in.raketdelivery.app`** — that is
 `android.package` in `app.json` and `package_name` in `google-services.json`,
 and they already agree. A mismatch here is one of the named
 `DEVELOPER_ERROR` causes.
 
-**Verify:** the Credentials list shows one **Android**-type client per
-fingerprint you collected, each with package `in.raketdelivery.app`.
+**Verify in the file, not in a console.** After § 5 regenerates
+`google-services.json`, it must contain one `client_type: 1` entry per
+fingerprint, each with a `certificate_hash`. The diagnostic asserts exactly
+this once `GOOGLE_CLIENT_IDS` is set:
+
+```bash
+cd api && GOOGLE_CLIENT_IDS=<your web client id> \
+  npx tsx ./src/scripts/checks/google-signin.check.mjs
+```
 
 ---
 
