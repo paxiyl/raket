@@ -12,10 +12,10 @@ places and are deliberately left alone — see the transformation plan.
 ## Project documents
 
 - [NORTHFLANK.md](NORTHFLANK.md) — **current hosting.** The Northflank deploy:
-  the Dockerfile, the region (asia-southeast), the environment-variable and
-  build-argument tables, the health checks, seeding the first admin from the
-  container shell, and an inventory of what the move off a sleeping free tier
-  makes redundant.
+  the Dockerfile, the region (europe-west/London, and what that costs), the
+  environment-variable and build-argument tables, the health checks, seeding
+  the first admin from the container shell, and an inventory of what the move
+  off a sleeping free tier makes redundant.
 - [GOOGLE_SIGNIN_SETUP.md](GOOGLE_SIGNIN_SETUP.md) — the Google Cloud Console
   setup in order, which client id goes where and why the web one goes in all
   three places, and a numbered failure table from build-time configuration down

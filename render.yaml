@@ -3,9 +3,14 @@
 #
 # Hosting moved to Northflank: see NORTHFLANK.md. The compute is now built from
 # the Dockerfile at the repository root and runs on a Northflank combined
-# service in the asia-southeast (Singapore) region — the same region this
-# blueprint already deployed to, so nothing about latency changes. MongoDB Atlas
-# and Cloudinary did not move.
+# service in the europe-west (London) region. MongoDB Atlas and Cloudinary did
+# not move — Atlas is still Mumbai, ap-south-1.
+#
+# NOTE THE REGION CHANGE. This blueprint deployed to Singapore. Northflank's
+# free plan offers only us-central (Iowa) and europe-west (London), so the API
+# is now ~7,200 km from Atlas instead of ~3,900 km, and every database round
+# trip pays it. That is a real regression, accepted in exchange for the
+# always-on tier below. See NORTHFLANK.md section The region.
 #
 # WHY: a Render free web service spins down after about 15 minutes idle, and the
 # next request waits tens of seconds for the container, Node and the Atlas

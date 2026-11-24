@@ -68,30 +68,71 @@ answers `/` with a 404 — which is the one URL you were told to open.
 
 ## The region
 
-**Use `Asia Southeast` (`asia-southeast`) — Singapore.**
+**Use `Europe - West` (`europe-west`) — London.**
 
-`Asia South Delhi` (`asia-south-delhi`) is what earlier drafts of this document
-specified, on the strength of being ~160 km from Hindaun and inside India
-alongside the Atlas cluster. **It is not offered on this account's plan**, so it
-was never actually on the table. Singapore is the nearest region that is.
+**This is a compromise, and it costs something. Read the whole section.**
 
-| | |
-|---|---|
-| Distance to Hindaun, Rajasthan | ~4,000 km — the closest region available on this plan. |
-| Distance to the Atlas cluster (Mumbai, `ap-south-1`) | ~3,900 km, roughly 60–80 ms RTT between the API and the database. |
-| Previous Render region | `singapore` — **the same region**. |
+The free plan offers exactly **two** of Northflank's seventeen regions:
+`us-central` (Council Bluffs, Iowa) and `europe-west` (London). They are the
+two in the dropdown's *Recommended* tab, and the only two without an *"Upgrade
+to pay as you go to use this region"* label. **There is no Asian region on this
+plan at all** — `asia-south-delhi` (Delhi) and `asia-southeast` (Singapore)
+both exist and are both gated. Earlier drafts of this document specified Delhi,
+then Singapore; neither was ever selectable. This was confirmed in the
+dashboard, not inferred.
 
-The last row is the one that decides this. Render was already running in
-Singapore, so both distances above are exactly what Raket has today: the
-API-to-Atlas hop and the distance to your users are **unchanged** by the move.
-There is no latency regression to accept here — and no improvement to claim
-either. Latency is simply not what this migration changes.
+So the choice is Iowa or London, and London wins on both hops:
 
-What it does change is the thing it was for. Render's free plan spun the service
-down after about 15 minutes idle, and the next request waited tens of seconds for
-the container, Node and the Atlas connection in series. Northflank's free Sandbox
-tier is always on, so that wait is gone. That benefit has nothing to do with
-region, and not getting Delhi costs none of it.
+| Compute region | → Hindaun | → Atlas (Mumbai, `ap-south-1`) | Est. RTT to Atlas |
+|---|---|---|---|
+| `asia-southeast` Singapore — *what Render used* | ~4,100 km | ~3,900 km | ~40–80 ms |
+| **`europe-west` London — chosen** | ~6,700 km | ~7,200 km | ~110–150 ms |
+| `us-central` Iowa | ~12,400 km | ~13,500 km | ~200–250 ms |
+
+Distances are great-circle; the RTT column is an estimate from them, not a
+measurement. Nothing here has been timed against a live deploy.
+
+### What this costs
+
+**Atlas does not move, so every database round trip crosses ~7,200 km.** That
+hop roughly doubles against Render. An endpoint issuing four or five sequential
+queries turns perhaps 300 ms of database wait into closer to 600 ms, on every
+request, permanently. Sequential-query patterns that were merely untidy in
+Singapore are now the thing to look at first if a page feels slow — the fix is
+fewer round trips (`$lookup`, `Promise.all`, a projection that avoids the second
+query), not a bigger instance.
+
+Be honest about this in both directions: requests get slower, and no amount of
+rewording changes that.
+
+### What it buys
+
+The thing the migration was actually for. Render's free plan spun the service
+down after about 15 minutes idle, and the next request waited **tens of
+seconds** for the container, Node and the Atlas connection in series.
+Northflank's free Sandbox tier does not sleep.
+
+An extra ~70 ms per database round trip is a far smaller problem than an
+occasional 30-second wake-up, which is why this trade is worth taking. It is
+still a trade, not the free win the earlier drafts claimed.
+
+### If the latency turns out to matter
+
+Two ways out, in order of cost:
+
+1. **Upgrade to pay-as-you-go and move to `asia-south-delhi`.** ~160 km from
+   Hindaun and in-country with Atlas — better than Render ever was, and the
+   only option here that improves on the status quo rather than conceding to it.
+   This needs a **new** Northflank project — the region is fixed once a
+   project is created — but not a new service definition: the Dockerfile,
+   variables and probes are all reusable as-is.
+2. **Move the Atlas cluster to a London region.** Removes the 7,200 km hop
+   entirely and needs no change on the Northflank side at all. But it is a
+   database migration, and it puts Indian customer data outside India — check
+   that against whatever obligations apply before treating it as a purely
+   technical decision.
+
+### The full region list
 
 Northflank's full managed-region list at the time of writing — `africa-south`,
 `asia-east`, `asia-northeast`, `asia-south-delhi`, `asia-southeast`,
@@ -99,13 +140,14 @@ Northflank's full managed-region list at the time of writing — `africa-south`,
 `europe-west-netherlands`, `europe-west-zurich`, `southamerica-east`,
 `us-central`, `us-east-ohio`, `us-east1`, `us-west`, `us-west-california`.
 
-That is Northflank's catalogue, not the menu a given plan exposes:
-`asia-south-delhi` is in the list above and is still unavailable here. The
-dropdown at project creation is the authority, not this list.
+That is Northflank's catalogue, not the menu any one plan exposes — fifteen of
+those seventeen are unavailable here. The dropdown at project creation is the
+authority, not this list, and a region being listed somewhere in the docs means
+nothing about whether you can click it.
 
-> **`[YOU]`** Select **`Asia Southeast`** in the region dropdown when you create
-> the project. If that dropdown turns out to offer anything closer to Hindaun
-> than Singapore, stop and say so before you continue — it would beat this
+> **`[YOU]`** Select **`Europe - West`** (London) in the region dropdown when
+> you create the project. If your plan has changed and an Asian region is
+> selectable, stop — `asia-south-delhi` then `asia-southeast` both beat this
 > choice, and the choice is permanent.
 
 **The region cannot be changed after the project is created.** It belongs to the
@@ -148,7 +190,7 @@ this image and watch the spend page.
 > | Field | Value |
 > |---|---|
 > | Name | `raket` |
-> | Region | **Asia Southeast** (see [The region](#the-region)) |
+> | Region | **Europe - West** / `europe-west`, London (see [The region](#the-region)) |
 >
 > Then **Link your Git account** if you have not already, and grant access to
 > this repository. Northflank builds from a branch, so it needs read access to
@@ -641,7 +683,7 @@ in the repository either way.
 
 | # | What | Where |
 |---|---|---|
-| 1 | Create the Northflank project in **Asia Southeast** (Singapore) | [§1](#1-create-the-project), [The region](#the-region) |
+| 1 | Create the Northflank project in **Europe - West** (London) — one of only two regions the free plan offers | [§1](#1-create-the-project), [The region](#the-region) |
 | 2 | Link the Git account and create the combined service from `/Dockerfile`, context `/` | [§2](#2-create-the-combined-service) |
 | 3 | Confirm port `8000` HTTP, publicly exposed | [§3](#3-networking) |
 | 4 | Enter the runtime variables; **generate a fresh `JWT_SECRET`** | [§4](#4-runtime-environment-variables) |
@@ -691,7 +733,7 @@ What could not be checked without your accounts:
 
 | | |
 |---|---|
-| Real API↔Atlas latency from `asia-southeast` to Mumbai | Not measured; the ~60–80 ms above is a distance estimate. Render ran in this same region, so whatever the real figure is, it is the one Raket already has. |
+| Real API↔Atlas latency from `europe-west` (London) to Mumbai | **Not measured.** The ~110–150 ms in [The region](#the-region) is estimated from distance. This is the single number most worth checking against the live deploy, because it is a regression on Render and it is paid on every database round trip. |
 | Whether `nf-compute-50` (0.5 vCPU / 1 GB) is enough to boot this image | The build peaks well above the runtime, but builds run on Northflank's infrastructure, not your service's plan. Watch the first boot; raise the plan if it OOMs. |
 | Whether disk caching is enabled for your team | The docs say it "must be available for your team" — contact Northflank support if the control is missing with BuildKit selected. |
 | The exact public hostname | Assigned at creation. |
