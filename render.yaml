@@ -1,38 +1,27 @@
 # ============================================================================
-# SUPERSEDED — this blueprint is no longer how Raket is deployed.
+# CURRENT. This blueprint is how Raket is deployed.
 #
-# Hosting moved to Northflank: see NORTHFLANK.md. The compute is now built from
-# the Dockerfile at the repository root and runs on a Northflank combined
-# service in the europe-west (London) region. MongoDB Atlas and Cloudinary did
-# not move — Atlas is still Mumbai, ap-south-1.
+# It was briefly marked superseded in favour of Northflank (NORTHFLANK.md).
+# That migration is PREPARED BUT NOT DONE: Northflank asked for a payment
+# method that is not available, and its free plan offers no region nearer than
+# London — ~7,200 km from the Mumbai Atlas cluster, against ~3,900 km from
+# Singapore here. So Render stays, in Singapore, and keeps the better latency.
 #
-# NOTE THE REGION CHANGE. This blueprint deployed to Singapore. Northflank's
-# free plan offers only us-central (Iowa) and europe-west (London), so the API
-# is now ~7,200 km from Atlas instead of ~3,900 km, and every database round
-# trip pays it. That is a real regression, accepted in exchange for the
-# always-on tier below. See NORTHFLANK.md section The region.
+# NORTHFLANK.md, the root Dockerfile and .dockerignore are kept and are ready
+# to use. They are a prepared alternative, not dead weight, and they are also
+# the escape hatch if Render's free plan changes. Do not delete them.
 #
-# WHY: a Render free web service spins down after about 15 minutes idle, and the
-# next request waits tens of seconds for the container, Node and the Atlas
-# connection in series. Northflank's free Sandbox tier is always on.
+# THE SPIN-DOWN IS HANDLED OUTSIDE THIS FILE. A free web service sleeps after
+# ~15 minutes idle and the next request waits about a minute. The fix in use is
+# an external uptime pinger against /health, which fits inside the free monthly
+# instance-hour budget. It is configuration in someone else's dashboard and
+# cannot be expressed here — see DEPLOYMENT.md section Keeping the free
+# service awake, which also covers the arithmetic and the caveats.
 #
-# KEPT ON PURPOSE, DO NOT DELETE YET. This file plus render-build.sh are the
-# rollback path, and they are the only record of the Render configuration that
-# Northflank was mapped from. Delete both only after the Northflank deploy has
-# passed NORTHFLANK.md § Verifying the deploy.
-#
-# Two things in here were WRONG even for Render, and are fixed in NORTHFLANK.md
-# rather than here — they are the reason Google sign-in never worked:
-#
-#   - VITE_GOOGLE_CLIENT_ID is never declared, so every admin bundle built from
-#     this blueprint had no Google client id compiled in and the button could
-#     not render. VITE_* is read at BUILD time; it is not runtime config.
-#   - ADMIN_BOOTSTRAP_EMAIL / _PASSWORD below exist only because Render's free
-#     plan has no shell. Northflank does, so use `npm run seed:admin` from the
-#     container shell and never set those variables again.
-#
-# The reasoning below about the one-service topology and the same-origin cookie
-# is still correct and still what NORTHFLANK.md implements.
+# VITE_GOOGLE_CLIENT_ID is now declared below. Its absence was the reason the
+# admin Google button never rendered: VITE_* is read at BUILD time and compiled
+# into the bundle, so a blueprint that does not declare it produces a bundle
+# with no client id, no matter how the server is configured.
 # ============================================================================
 
 # Render blueprint — one web service, two apps.
@@ -51,11 +40,13 @@
 # not the same requirement, and only the second one is actually asked for here.
 #
 # FREE PLAN: a free web service spins down after about 15 minutes with no
-# traffic, and the next request waits for it to boot — tens of seconds, and the
+# traffic, and the next request waits for it to boot — about a minute, and the
 # database connection happens before it listens, so the wait is real. Both
-# clients are built for that (see DEPLOYMENT.md § Cold starts). Free services
-# also have no uptime guarantee and a monthly instance-hour budget. Move to a
-# paid instance before this carries real orders.
+# clients are built for that (see DEPLOYMENT.md § Cold starts), and an external
+# pinger keeps the service awake during active hours (§ Keeping the free service
+# awake). Free services have no uptime guarantee and a monthly instance-hour
+# budget that the pinger eats into. Move to a paid instance before this carries
+# real orders.
 services:
   - type: web
     name: raket-api
@@ -101,7 +92,33 @@ services:
 
       # ---- Optional integrations. Leave blank and the feature stays off; both
       # clients ask the server what is configured rather than assuming.
+
+      # The WEB OAuth client id, read by the API at RUN time to verify the
+      # audience of an incoming Google ID token. Never an Android client id:
+      # those exist only so Google recognises the app by its SHA-1, and they
+      # never appear in an audience. See GOOGLE_SIGNIN_SETUP.md.
       - key: GOOGLE_CLIENT_IDS
+        sync: false
+
+      # The SAME web client id again, for the admin bundle.
+      #
+      # READ AT BUILD TIME, NOT AT RUN TIME. Vite compiles VITE_* into the
+      # JavaScript it emits, and render-build.sh runs the admin build, so Render
+      # must have this value when the BUILD runs. Changing it needs a redeploy,
+      # not a restart — a restart reuses the bundle that was already built.
+      #
+      # admin/src/components/auth/google-sign-in-button.tsx opens with
+      # `if (!CLIENT_ID) return null`, so an undeclared value renders nothing at
+      # all, silently, however the server is configured. This blueprint not
+      # declaring it is why the admin Google button has never appeared.
+      #
+      # Public by design: it ships inside the browser bundle. Still `sync: false`
+      # so the value lives in the dashboard next to the runtime one it must
+      # match, rather than being committed here and drifting from it.
+      #
+      # Leave it unset to keep the Google button hidden. That is a supported
+      # state, not a broken one.
+      - key: VITE_GOOGLE_CLIENT_ID
         sync: false
       - key: RAZORPAY_KEY_ID
         sync: false

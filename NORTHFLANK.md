@@ -1,13 +1,37 @@
 # Deploying Raket on Northflank
 
+> ## ⚠ PREPARED, NOT DEPLOYED. This is not how Raket is hosted.
+>
+> Raket runs on **Render**, in Singapore — see [DEPLOYMENT.md](DEPLOYMENT.md),
+> which is current. This document is finished and believed correct, but it has
+> never been executed against a live Northflank account.
+>
+> It was shelved for two reasons, both discovered part-way through:
+>
+> 1. **Northflank asked for a payment method** that is not available.
+> 2. **The free plan offers only two regions** — `us-central` (Iowa) and
+>    `europe-west` (London). No Asian region is selectable. London is ~7,200 km
+>    from the Mumbai Atlas cluster against ~3,900 km from Singapore, so moving
+>    would have made every database round trip slower. See
+>    [The region](#the-region).
+>
+> Render's ~15-minute spin-down — the problem this migration existed to solve —
+> is instead handled by an external pinger, within the free instance-hour
+> allowance. See
+> [DEPLOYMENT.md § Keeping the free service awake](DEPLOYMENT.md#keeping-the-free-service-awake).
+>
+> **Keep this document, the root `Dockerfile` and `.dockerignore`.** They are
+> the escape hatch if Render's free plan changes or a card becomes available,
+> and the Dockerfile has been built and run end to end. Read the rest of this
+> file as a plan, not as a description of anything running.
+
 One Northflank **combined service** (build + deploy in one), the same MongoDB
 Atlas cluster, the same Cloudinary account, and an APK rebuilt against the new
 URL.
 
-This replaces [`render.yaml`](render.yaml) and
-[`render-build.sh`](render-build.sh). Both are still in the repository, marked
-superseded — do not delete them until the Northflank deploy has been verified
-against the checklist in [Verifying the deploy](#verifying-the-deploy).
+This would replace [`render.yaml`](render.yaml) and
+[`render-build.sh`](render-build.sh), which are **current and in use** — do not
+delete them.
 
 **What moves:** compute only. **What does not:** MongoDB Atlas, Cloudinary, the
 Google Cloud OAuth clients, the Expo/EAS project. Nothing in `api/`, `admin/` or

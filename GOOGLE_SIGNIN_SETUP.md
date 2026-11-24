@@ -5,7 +5,7 @@ worked, because the configuration around it has never been finished. This is the
 Google Cloud Console work, in the order it has to happen, with a way to verify
 each step before moving to the next.
 
-Steps that need your Google, Expo or Northflank account are marked **`[YOU]`**.
+Steps that need your Google, Expo or Render account are marked **`[YOU]`**.
 Nothing in this document has been executed — this container has no Google
 credentials. Every client ID below is written as a placeholder shape, never a
 value that could be mistaken for real.
@@ -185,12 +185,17 @@ line in that `env` object; it is a three-line change, but it is not needed.
 
 ### 3. `render.yaml` never passes `VITE_GOOGLE_CLIENT_ID` to the build
 
-Same failure, on the browser. The blueprint declares `GOOGLE_CLIENT_IDS` (the
+Same failure, on the browser. The blueprint declared `GOOGLE_CLIENT_IDS` (the
 server half) but no `VITE_GOOGLE_CLIENT_ID`, and that value is compiled into the
 bundle at build time. `google-sign-in-button.tsx` returns `null` without it. So
 the admin button has never rendered either, whatever the server reported.
 
-See [NORTHFLANK.md § 5](NORTHFLANK.md#5-build-arguments) for where it goes now.
+**Fixed.** [`render.yaml`](render.yaml) now declares `VITE_GOOGLE_CLIENT_ID` as
+a `sync: false` service variable, which Render exposes to the build as well as
+the runtime, and `render-build.sh` runs the admin build, so Vite picks it up
+from the environment. You still have to enter the value in the dashboard — see
+[§ 6b](#6b-admin--build-time-needs-a-redeploy) — and a **redeploy**, not a
+restart, is what applies a change to it.
 
 ### 4. `GOOGLE_CLIENT_IDS` is almost certainly unset on the server
 
@@ -269,7 +274,7 @@ This is the one whose ID you will use three times.
 > | Field | Value |
 > |---|---|
 > | Name | `Raket web (admin + token audience)` |
-> | Authorised JavaScript origins | `https://<your-northflank-host>` and `http://localhost:5173` |
+> | Authorised JavaScript origins | `https://<your-service>.onrender.com` and `http://localhost:5173` |
 > | Authorised redirect URIs | **none** |
 >
 > Then copy the **Client ID**. It looks like
@@ -296,7 +301,7 @@ slash and no path**.
 2. Set it on the server and ask the server:
 
    ```bash
-   # Northflank → Configure → Environment → Runtime variables
+   # Render dashboard → your service → Environment
    GOOGLE_CLIENT_IDS=<digits>-<handle>.apps.googleusercontent.com
    ```
 
@@ -462,30 +467,43 @@ changing them needs a rebuild, not a restart.
 
 ### 6a. API — runtime, restart is enough
 
-> **`[YOU]`** Northflank → **Configure → Environment → Runtime variables**:
+> **`[YOU]`** Render dashboard → your service → **Environment**:
 >
 > ```
 > GOOGLE_CLIENT_IDS=<digits>-<handle>.apps.googleusercontent.com
 > ```
+>
+> `render.yaml` declares it `sync: false`, so Render prompts for the value
+> rather than taking it from the repository.
 
 Comma-separated if you ever need several audiences, no spaces required (the
 server trims). **Only web client IDs belong here.** An Android ID in this list
 matches no token's `aud` and every sign-in returns 401 — the diagnostic check
 detects exactly that mistake by cross-referencing `google-services.json`.
 
-### 6b. Admin — build argument, needs a rebuild
+### 6b. Admin — build time, needs a redeploy
 
-> **`[YOU]`** Northflank → **Configure → Build → Build arguments**:
+> **`[YOU]`** Render dashboard → your service → **Environment**:
 >
 > ```
 > VITE_GOOGLE_CLIENT_ID=<digits>-<handle>.apps.googleusercontent.com
 > ```
 >
-> Then **trigger a rebuild**, not a restart.
+> The **same string** as `GOOGLE_CLIENT_IDS` above. Then **trigger a manual
+> deploy**, not a restart.
 
-The `admin-build` stage of the Dockerfile already declares the matching `ARG`.
+On Render a service environment variable is present during the build as well as
+at runtime, and `render-build.sh` runs `npm run build --prefix admin`, so Vite
+reads it straight from the environment. Nothing has to pass it explicitly.
+
+**Why a redeploy and not a restart:** Vite compiles the value into the
+JavaScript it emits. A restart serves the bundle that was already built, with
+whatever value was set when that build ran — so changing the variable alone
+does nothing visible.
+
 For local development, put it in `admin/.env` (`admin/.env.example` documents
-it).
+it). The root `Dockerfile`'s `admin-build` stage declares a matching `ARG` for
+the Northflank path, which is prepared but not in use.
 
 ### 6c. Mobile — compiled into the APK, needs a new build
 

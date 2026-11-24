@@ -11,21 +11,21 @@ places and are deliberately left alone — see the transformation plan.
 
 ## Project documents
 
-- [NORTHFLANK.md](NORTHFLANK.md) — **current hosting.** The Northflank deploy:
-  the Dockerfile, the region (europe-west/London, and what that costs), the
-  environment-variable and build-argument tables, the health checks, seeding
-  the first admin from the container shell, and an inventory of what the move
-  off a sleeping free tier makes redundant.
+- [DEPLOYMENT.md](DEPLOYMENT.md) — **current hosting.** Render, Singapore,
+  free plan, kept awake by an external pinger. The one-service topology and why
+  it keeps the admin cookie same-origin, Atlas and Cloudinary setup, the
+  environment variables, the safe admin seed, the mobile release, and the
+  cold-start behaviour both clients are built for.
+- [NORTHFLANK.md](NORTHFLANK.md) — **prepared, not deployed.** A finished
+  Northflank migration, unused because Northflank wanted a payment method that
+  was not available and its free plan reaches no nearer than London (~7,200 km
+  to the Mumbai Atlas cluster, against ~3,900 km from Singapore). Kept, with the
+  root `Dockerfile` and `.dockerignore`, for when a card exists or Render's free
+  plan changes. Do not follow it as current, and do not delete it.
 - [GOOGLE_SIGNIN_SETUP.md](GOOGLE_SIGNIN_SETUP.md) — the Google Cloud Console
   setup in order, which client id goes where and why the web one goes in all
   three places, and a numbered failure table from build-time configuration down
   to the auth cookie.
-- [DEPLOYMENT.md](DEPLOYMENT.md) — the Render topology and why it keeps the
-  admin cookie same-origin, Atlas and Cloudinary setup, the environment
-  variables, the safe admin seed, the mobile release, and the free-tier
-  cold-start behaviour both clients are built for. **The hosting sections are
-  superseded by NORTHFLANK.md**; the architecture, Atlas, Cloudinary and mobile
-  sections still apply.
 - [OnlineMall transformation plan](docs/plans/2026-10-06-onlinemall-transformation.md) —
   current source of truth: decisions taken, phase status, and the checklist.design audit.
 - [Chowly v1 plan](docs/plans/2026-09-03-chowly-v1.md) — specification, confirmed decisions,

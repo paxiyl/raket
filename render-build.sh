@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 #
 # ============================================================================
-# SUPERSEDED by the Dockerfile at the repository root. See NORTHFLANK.md.
+# CURRENT. This is the build Render runs. It was briefly marked superseded in
+# favour of the root Dockerfile; that Northflank migration is prepared but not
+# done. See the header of render.yaml.
 #
-# Kept as the rollback path alongside render.yaml until the Northflank deploy
-# has passed NORTHFLANK.md Verifying the deploy. Delete both together.
+# The root Dockerfile is this script, staged: same order (admin before api,
+# because the API serves the admin bundle), same --include=dev
+# (NODE_ENV=production makes npm skip the devDependencies that vite, tsc and
+# tsup live in), same two assertions that the build outputs exist. Keep the two
+# in step when either changes.
 #
-# The Dockerfile is this script, staged: same order (admin before api, because
-# the API serves the admin bundle), same --include=dev (NODE_ENV=production
-# makes npm skip the devDependencies that vite, tsc and tsup live in), same two
-# assertions that the build outputs exist.
+# VITE_GOOGLE_CLIENT_ID, if set in the Render dashboard, is read from the
+# environment by `npm run build --prefix admin` below. Nothing in this script
+# needs to pass it explicitly — Vite picks up VITE_* from the process
+# environment — but it must exist HERE, at build time, not only at run time.
 # ============================================================================
 #
 # The production build, as one script so the Render dashboard and this

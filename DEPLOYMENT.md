@@ -1,24 +1,25 @@
 # Deploying Raket
 
-> **HOSTING HAS MOVED TO NORTHFLANK — see [NORTHFLANK.md](NORTHFLANK.md).**
+> **This is the current deploy.** Raket runs on Render, in Singapore, on the
+> free plan, with an external pinger keeping it awake — see
+> [Keeping the free service awake](#keeping-the-free-service-awake).
 >
-> This document still describes the **Render** deploy. It is kept because most
-> of it is not about Render at all, and because it is the rollback path until
-> the Northflank deploy is verified.
+> A migration to Northflank was prepared and then not carried out: Northflank
+> asked for a payment method that is not available, and its free plan offers no
+> region nearer than London, which is ~7,200 km from the Mumbai Atlas cluster
+> against ~3,900 km from Singapore. Staying here keeps the better latency.
 >
-> | Section | Status |
+> [NORTHFLANK.md](NORTHFLANK.md), the root `Dockerfile` and `.dockerignore` are
+> finished and kept. They are a prepared alternative for when a card is
+> available or Render's free plan changes — not dead weight, and not current.
+>
+> Two corrections to what is written below, both of which survived the
+> round trip:
+>
+> | Section | Correction |
 > |---|---|
-> | [The architecture, and why](#the-architecture-and-why) | **Still current** — the one-service, same-origin-cookie topology is exactly what Northflank runs. One exception: the paragraph about *"when the service is asleep, the browser has nothing to render"* no longer applies. Northflank does not sleep. |
-> | [1. MongoDB Atlas](#1-mongodb-atlas) | **Still current.** Atlas did not move. |
-> | [2. Cloudinary](#2-cloudinary) | **Still current.** Cloudinary did not move. |
-> | [3. The Render service](#3-the-render-service) | **Superseded** by [NORTHFLANK.md §§ 1–3](NORTHFLANK.md#1-create-the-project). |
-> | [4. Environment variables](#4-environment-variables) | **Superseded** by [NORTHFLANK.md § 4](NORTHFLANK.md#4-runtime-environment-variables). The variables are the same; where they go is not, and `VITE_*` is a **build argument**, not a runtime variable — see [NORTHFLANK.md § 5](NORTHFLANK.md#5-build-arguments). |
-> | [5. The first admin account](#5-the-first-admin-account) | **Use the shell route only.** Northflank has shell access, so the `ADMIN_BOOTSTRAP_*` workaround in *"Without a shell"* is obsolete — [NORTHFLANK.md § 8](NORTHFLANK.md#8-the-first-administrator). |
-> | [6. The mobile app](#6-the-mobile-app) | **Still current**, except that `eas.json` has to point at the new host. |
-> | [7. Optional integrations](#7-optional-integrations) | **Still current**, but § *Google sign-in* is incomplete — it omits the two build-time variables that are the actual reason it never worked. Use [GOOGLE_SIGNIN_SETUP.md](GOOGLE_SIGNIN_SETUP.md). |
-> | [Cold starts on the free plan](#cold-starts-on-the-free-plan) | **No longer applies.** Northflank's free tier is always on. The client-side machinery it describes is still live and still useful during redeploys — [NORTHFLANK.md § What is now dead code](NORTHFLANK.md#what-is-now-dead-code) says which parts are now redundant and which are not. |
-> | [Verifying a deployment](#verifying-a-deployment) | **Still current**, against the new host. |
-> | [A separate admin origin](#a-separate-admin-origin) | **Still current, and now a weaker idea than it was.** Its one real argument was the pre-wake blank page, which no longer happens. |
+> | [4. Environment variables](#4-environment-variables) | `VITE_GOOGLE_CLIENT_ID` is now declared in [`render.yaml`](render.yaml). It is a **build-time** variable — Vite compiles it into the admin bundle — so changing it needs a redeploy, not a restart. Its absence is why the admin Google button never rendered. |
+> | [7. Optional integrations](#7-optional-integrations) | § *Google sign-in* here is incomplete: it omits the build-time variables on both the admin and mobile sides, which are the actual reason sign-in has never worked. Use [GOOGLE_SIGNIN_SETUP.md](GOOGLE_SIGNIN_SETUP.md) instead. |
 
 One Render web service, one MongoDB Atlas cluster, one Cloudinary account, and
 an APK built against the service's real URL.
@@ -525,6 +526,65 @@ both ends today.
 
 ---
 
+## Keeping the free service awake
+
+A free web service sleeps after ~15 minutes without inbound traffic, and the
+next request waits about a minute. The fix that needs no card and no migration
+is an external pinger.
+
+**The arithmetic, which is the whole argument.** Render resets free instance
+hours to **750 at the start of each month**, and a 31-day month is **744
+hours**. One service kept awake continuously *fits inside the allowance Render
+already grants*. You are not stealing hours; you are using the ones you were
+given. This is why the old "waste of the same instance-hours" objection does
+not hold.
+
+> **`[YOU]`** [cron-job.org](https://cron-job.org) or UptimeRobot — both free,
+> neither needs a card.
+>
+> | Setting | Value |
+> |---|---|
+> | URL | `https://<your-service>.onrender.com/health` |
+> | Method | `GET` |
+> | Interval | every 10 minutes (anything under 15 works) |
+> | Active hours | restrict to when people actually order — see below |
+
+### Three things that break this
+
+**1. Never ping `/robots.txt`.** While a free service is spun down Render
+intercepts that path and answers it itself with a disallow-all. The request
+never reaches the container and never wakes it, so the monitor goes green while
+the service stays asleep. `/health` is the right target for a second reason: it
+is mounted at the root and **before the rate limiter**, specifically so a
+platform health check cannot spend a client's rate-limit budget, and it only
+reads mongoose's connection state rather than querying — the cheapest
+unauthenticated route in the app.
+
+**2. 744 of 750 hours is almost no margin, and the pool is shared across the
+whole workspace.** Any second free web service and the budget is gone — and
+when free hours run out Render suspends **all** of them until the 1st of the
+next month. Check the dashboard for anything unused and delete it.
+
+The better answer is to **not ping around the clock**. Restricting the pinger
+to roughly 06:00–01:00 IST costs about 589 hours a month, which leaves real
+headroom, and the only cold start anyone meets is the first request of the
+morning. Raket is quick commerce in Hindaun; there is no 04:00 traffic to
+protect.
+
+**3. Render does not endorse this.** Their documentation points at paid
+instances to avoid spin-down. Staying inside the 750 hours is defensible and
+the practice is widespread, but it is a workaround and not a guarantee. If it
+stops working, the options are a paid instance, or
+[NORTHFLANK.md](NORTHFLANK.md), which is finished and waiting.
+
+### What this does not fix
+
+Deploys. A redeploy restarts the service regardless, so the cold-start handling
+described in the next section stays load-bearing — do not treat it as dead code
+and do not remove it.
+
+---
+
 ## Cold starts on the free plan
 
 A Render free web service **spins down after about 15 minutes with no traffic**.
@@ -532,10 +592,17 @@ The next request waits for a container to start, Node to boot, and MongoDB to
 connect before anything is served — tens of seconds, not milliseconds. Free
 services also have no uptime guarantee and a monthly instance-hour budget.
 
-There is no trick that fixes this, and pinging your own service on a timer to
-keep it awake is both against the spirit of the free plan and a waste of the
-same instance-hours it is spending. The honest fixes are a paid instance, or
-designing for the wait. Both clients do the latter:
+An earlier version of this document said flatly that pinging your own service
+to keep it awake is "against the spirit of the free plan and a waste of the
+same instance-hours it is spending." The second half of that is wrong on the
+arithmetic, and the practice is now in use here — see
+[Keeping the free service awake](#keeping-the-free-service-awake) for the
+numbers and the caveats. The first half stands: it is a workaround Render does
+not endorse.
+
+The pinger does not make the machinery below redundant. It covers active hours
+only, deploys still restart the service, and a free instance has no uptime
+guarantee. The clients still have to be built for the wait, and they are:
 
 **Mobile.** The native splash is hidden as soon as the **fonts** are ready — a
 local task that finishes in milliseconds. It is never held on a network call,
