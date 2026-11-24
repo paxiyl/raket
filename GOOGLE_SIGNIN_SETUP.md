@@ -404,19 +404,21 @@ generates `google-services.json`.
 > `google-services.json` as a `client_type: 1` entry. You never name the client
 > or see its ID.
 
-**Why not the Cloud Console.** Creating the client by hand there
+**Why the Cloud Console is not enough.** Creating the client by hand there
 (*Credentials → Create credentials → OAuth client ID → Android*) produces a
-client that is real and correct and that Firebase does not know belongs to this
-app. Regenerating `google-services.json` afterwards gives you a file with the
-web client in it and **no `client_type: 1` entry at all**, which is
-indistinguishable from having done nothing. Observed, not theorised — it is
-what happened on this project.
+perfectly valid Android client. It is simply not attached to the Firebase app,
+and `google-services.json` lists what the Firebase app knows about. Regenerate
+the file at that point and you get the web client and **no `client_type: 1`
+entry at all** — indistinguishable from having skipped the step.
 
-A related tell: if the Cloud Console offered you a **downloadable credentials
-JSON** for the client you just made, with an `"installed"` key in it, that is
-not an Android client. Android clients have no such download. A `Desktop app`
-or `iOS` client has one, looks plausible, and will never satisfy Google
-Sign-In. Delete it and use the Firebase route.
+Adding the fingerprint in Firebase fixes it either way: if a matching Android
+client already exists for that package and SHA-1, Firebase adopts it rather
+than creating a second one, and the next download contains it. Both observed on
+this project, in that order.
+
+So the Cloud Console route is not wrong, it is incomplete. **The fingerprint
+has to be registered on the Firebase app**, and that one step is sufficient on
+its own.
 
 **The package name must be exactly `in.raketdelivery.app`** — that is
 `android.package` in `app.json` and `package_name` in `google-services.json`,

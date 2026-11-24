@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1006668530225-3p63st154hbmfv49ogtvtrv5t20a1rmj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.raketdelivery.app",
+            "certificate_hash": "2c24e9019e6391bfc5994129d48c2abc4e531c8e"
+          }
+        },
+        {
           "client_id": "1006668530225-besnfkabnq81m9pjnshq9r14vr1ffgr4.apps.googleusercontent.com",
           "client_type": 3
         }
